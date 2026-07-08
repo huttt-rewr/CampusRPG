@@ -11,8 +11,11 @@
 #include <sstream>
 #include <cstdlib>
 #include <ctime>
+#include <algorithm>
 
-GameManager::GameManager() : bankGold(0), currentSaveSlot(-1) {
+GameManager::GameManager()
+    : bankGold(0), currentSaveSlot(-1), battlesSinceRest(0),
+      mainlineStage(1), restPointAvailable(false) {
     srand((unsigned)time(nullptr));
     map = std::make_unique<GameMap>();
     initEnemies();
@@ -30,6 +33,9 @@ void GameManager::resetWorldForNewPlayer(const std::string& name) {
     player = std::make_unique<Character>(name);
     warehouse.clear();
     bankGold = 0;
+    battlesSinceRest = 0;
+    mainlineStage = 1;
+    restPointAvailable = false;
     map = std::make_unique<GameMap>();
     enemies.clear();
     tasks.clear();
@@ -72,6 +78,7 @@ void GameManager::initShop() {
     shop->addItem(createSpecialItemById("回蓝药"));
     shop->addItem(createSpecialItemById("狂暴药水"));
     shop->addItem(createSpecialItemById("虚弱药水"));
+    shop->addItem(createSpecialItemById("疲惫药水"));
 }
 
 bool GameManager::isTown() const {
@@ -82,6 +89,86 @@ bool GameManager::isTown() const {
 
 std::string GameManager::currentLocationType() const {
     return isTown() ? "城镇节点" : "野外节点";
+}
+
+std::string GameManager::currentTownName() const {
+    if (!map) return "起源之地";
+    int idx = map->currentLocation;
+    if (idx <= 3) return "起源之地";
+    if (idx <= 5) return "黄昏边界";
+    if (idx <= 7) return "芒星镇";
+    if (idx == 8) return "月辉城";
+    return "圣都";
+}
+
+int GameManager::currentTownMinLevel() const {
+    std::string town = currentTownName();
+    if (town == "起源之地") return 0;
+    if (town == "黄昏边界") return 10;
+    if (town == "芒星镇") return 15;
+    if (town == "月辉城") return 20;
+    return 25;
+}
+
+int GameManager::currentTownMaxLevel() const {
+    std::string town = currentTownName();
+    if (town == "起源之地") return 10;
+    if (town == "黄昏边界") return 15;
+    if (town == "芒星镇") return 20;
+    if (town == "月辉城") return 25;
+    return 30;
+}
+
+std::string GameManager::mainlineInfo() const {
+    static const char* stages[] = {
+        "起源之地 -> 黄昏边界",
+        "黄昏边界 -> 芒星镇",
+        "芒星镇 -> 月辉城",
+        "月辉城 -> 圣都",
+        "圣都 -> 进军次元裂隙"
+    };
+    int idx = std::max(1, std::min(mainlineStage, 5)) - 1;
+    return std::string("主线阶段 ") + std::to_string(mainlineStage)
+        + "：" + stages[idx] + "。当前为框架进度，后续可扩展为关卡推进。";
+}
+
+std::string GameManager::formationInfo() const {
+    return "编队框架：前排1人，后排2人。当前版本以主角单人战斗承载核心流程，后续可扩展为3v3技能选人与目标选择。";
+}
+
+std::string GameManager::addBattleRewardItem() {
+    if (!player) return "";
+    if (rand() % 100 >= 35) return "本次战斗没有掉落物品。";
+    static const char* drops[] = {"回血药", "回蓝药", "战斗经验卡"};
+    auto item = createSpecialItemById(drops[rand() % 3]);
+    if (!item) return "";
+    std::string name = item->getName();
+    if (!player->addItem(item)) {
+        return "战斗掉落了 " + name + "，但背包已满，无法拾取。";
+    }
+    return "战斗掉落：" + name + " 已自动放入背包。";
+}
+
+void GameManager::recordBattleFinished() {
+    ++battlesSinceRest;
+    if (battlesSinceRest >= 3) {
+        restPointAvailable = true;
+        battlesSinceRest = 0;
+    }
+}
+
+std::string GameManager::returnToTown() {
+    if (!map) return "地图未初始化。";
+    if (!restPointAvailable && !isTown()) {
+        return "尚未发现休息点。每完成3次战斗后可通过休息点回城。";
+    }
+    map->currentLocation = 3; // 食堂：当前版本的城镇服务中心
+    restPointAvailable = false;
+    if (player) {
+        player->heal(player->getMaxHp());
+        player->restoreMana(player->getMaxMp());
+    }
+    return "已通过休息点返回城镇，并恢复生命值与蓝量。";
 }
 
 bool GameManager::doBattle(int enemyIndex) {
@@ -182,6 +269,7 @@ std::string GameManager::depositItem(int index) {
 std::string GameManager::withdrawItem(int index) {
     if (!isTown()) return "只有城镇节点可以打开仓库。";
     if (!player) return "角色不存在。";
+    if (player->isInventoryFull()) return "背包已满，无法从仓库取出物品。";
     if (index < 0 || index >= (int)warehouse.size()) return "请选择要取出的物品。";
     std::string name = warehouse[index]->getName();
     player->addItem(warehouse[index]);
@@ -262,6 +350,9 @@ std::string GameManager::saveGame(int slot) {
     s.setValue("player/attack", player->getAttack());
     s.setValue("player/defense", player->getDefense());
     s.setValue("bank/gold", bankGold);
+    s.setValue("progress/battlesSinceRest", battlesSinceRest);
+    s.setValue("progress/mainlineStage", mainlineStage);
+    s.setValue("progress/restPointAvailable", restPointAvailable);
 
     QStringList invIds;
     for (const auto& item : player->getInventory()) {
@@ -297,6 +388,9 @@ std::string GameManager::loadGame(int slot) {
         s.value("player/attack", 12).toInt(),
         s.value("player/defense", 6).toInt());
     bankGold = s.value("bank/gold", 0).toInt();
+    battlesSinceRest = s.value("progress/battlesSinceRest", 0).toInt();
+    mainlineStage = s.value("progress/mainlineStage", 1).toInt();
+    restPointAvailable = s.value("progress/restPointAvailable", false).toBool();
     if (map) {
         map->currentLocation = s.value("meta/location", 0).toInt();
     }

@@ -4,7 +4,7 @@
 
 Enemy::Enemy(const std::string& n, int h, int a, int d, int er, int gr)
     : name(n), hp(h), maxHp(h), attack(a), baseAttack(a), defense(d),
-      expReward(er), goldReward(gr) {}
+      expReward(er), goldReward(gr), fatigueTurns(0) {}
 
 int Enemy::attackPlayer() const { return attack; }
 void Enemy::takeDamage(int dmg) {
@@ -19,9 +19,17 @@ int Enemy::getMaxHp() const { return maxHp; }
 int Enemy::getAttack() const { return attack; }
 int Enemy::getDefense() const { return defense; }
 void Enemy::buffAttack(int amount) { attack = std::max(1, attack + amount); }
+void Enemy::applyFatigue(int turns) { fatigueTurns = std::max(fatigueTurns, turns); }
+bool Enemy::consumeFatigueSkip() {
+    if (fatigueTurns <= 0) return false;
+    --fatigueTurns;
+    return (rand() % 100) < 50;
+}
+int Enemy::getFatigueTurns() const { return fatigueTurns; }
 void Enemy::resetBattleState() {
     hp = maxHp;
     attack = baseAttack;
+    fatigueTurns = 0;
 }
 
 // NormalMonster

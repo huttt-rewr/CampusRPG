@@ -22,6 +22,9 @@ public:
     std::vector<std::shared_ptr<Item>> warehouse;
     int bankGold;
     int currentSaveSlot;
+    int battlesSinceRest;
+    int mainlineStage;
+    bool restPointAvailable;
 
     GameManager();
     ~GameManager();
@@ -33,6 +36,14 @@ public:
     void resetWorldForNewPlayer(const std::string& name);
     bool isTown() const;
     std::string currentLocationType() const;
+    std::string currentTownName() const;
+    int currentTownMinLevel() const;
+    int currentTownMaxLevel() const;
+    std::string mainlineInfo() const;
+    std::string formationInfo() const;
+    std::string addBattleRewardItem();
+    void recordBattleFinished();
+    std::string returnToTown();
 
     // Map
     std::string moveTo(int locIndex);

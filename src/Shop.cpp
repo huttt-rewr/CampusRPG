@@ -9,6 +9,9 @@ std::vector<std::shared_ptr<Item>>& Shop::getItems() { return items; }
 std::string Shop::buyItem(int index, Character& c) {
     if (index < 0 || index >= (int)items.size()) return "无效商品";
     auto& item = items[index];
+    if (c.isInventoryFull()) {
+        return "背包已满，无法购买 " + item->getName() + "。";
+    }
     if (!c.spendGold(item->getPrice()))
         return "金币不足! 需要 " + std::to_string(item->getPrice()) + "G";
     std::string n = item->getName();

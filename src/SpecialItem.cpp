@@ -39,6 +39,9 @@ std::string SpecialItem::use(Character& c) {
     case SpecialEffect::WeakPotion:
         oss << "虚弱药水只能在战斗中对敌人使用";
         break;
+    case SpecialEffect::FatiguePotion:
+        oss << "疲惫药水只能在战斗中对敌人使用";
+        break;
     }
     return oss.str();
 }
@@ -49,6 +52,14 @@ std::string SpecialItem::useInBattle(Character& c, Enemy* enemy) {
         enemy->buffAttack(-value);
         std::ostringstream oss;
         oss << enemy->getName() << " 的攻击力降低 " << value << " 点";
+        return oss.str();
+    }
+    if (effect == SpecialEffect::FatiguePotion) {
+        if (!enemy) return "当前没有可疲惫的敌人";
+        enemy->applyFatigue(duration);
+        std::ostringstream oss;
+        oss << enemy->getName() << " 陷入疲惫，接下来 " << duration
+            << " 回合有50%概率跳过行动";
         return oss.str();
     }
     return use(c);
@@ -78,6 +89,9 @@ std::string SpecialItem::getInfo() const {
         break;
     case SpecialEffect::WeakPotion:
         oss << " [敌ATK-" << value << "]";
+        break;
+    case SpecialEffect::FatiguePotion:
+        oss << " [敌跳过行动50% / " << duration << "回合]";
         break;
     }
     return oss.str();
@@ -116,6 +130,10 @@ std::shared_ptr<Item> createSpecialItemById(const std::string& id) {
     if (id == "虚弱药水") {
         return std::make_shared<SpecialItem>("虚弱药水", 70, "降低当前敌人的攻击力",
                                              SpecialEffect::WeakPotion, 6, 3);
+    }
+    if (id == "疲惫药水") {
+        return std::make_shared<SpecialItem>("疲惫药水", 75, "使敌人概率跳过回合",
+                                             SpecialEffect::FatiguePotion, 0, 3);
     }
     if (id == "面包") return std::make_shared<Food>("面包", 15, "恢复少量HP", 25);
     if (id == "烤鸡") return std::make_shared<Food>("烤鸡", 35, "恢复较多HP", 60);

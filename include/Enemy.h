@@ -15,6 +15,7 @@ protected:
     int defense;
     int expReward;
     int goldReward;
+    int fatigueTurns;
 
 public:
     Enemy(const std::string& name, int hp, int atk, int def,
@@ -33,6 +34,9 @@ public:
     int getAttack() const;
     int getDefense() const;
     void buffAttack(int amount);
+    void applyFatigue(int turns);
+    bool consumeFatigueSkip();
+    int getFatigueTurns() const;
     virtual void resetBattleState();
 };
 

@@ -257,10 +257,13 @@ void MainWindow::refreshCharacterPanel() {
     if (!c) return;
 
     charNameLabel->setText(QString::fromStdString(c->getName()));
-    charLevelLabel->setText(QString("等级 Lv.%1  |  背包物品: %2 件  |  MP: %3/%4  |  %5")
-        .arg(c->getLevel()).arg(c->inventoryCount())
+    charLevelLabel->setText(QString("等级 Lv.%1/%2  |  背包: %3/%4  |  MP: %5/%6  |  %7\n%8\n%9")
+        .arg(c->getLevel()).arg(Character::MaxLevel)
+        .arg(c->inventoryCount()).arg(Character::MaxInventorySlots)
         .arg(c->getMp()).arg(c->getMaxMp())
-        .arg(QString::fromStdString(game.currentLocationType())));
+        .arg(QString::fromStdString(game.currentLocationType()))
+        .arg(QString::fromStdString(game.mainlineInfo()))
+        .arg(QString::fromStdString(game.formationInfo())));
 
     hpBar->setMaximum(c->getMaxHp());
     hpBar->setValue(c->getHp());
@@ -320,17 +323,21 @@ void MainWindow::refreshInventory() {
     invList->clear();
     if (!game.player) return;
     auto& inv = game.player->getInventory();
+    invList->addItem(QString("背包容量：%1 / %2")
+        .arg(game.player->inventoryCount()).arg(Character::MaxInventorySlots));
     for (size_t i = 0; i < inv.size(); ++i) {
         invList->addItem(QString("[%1] %2").arg(i+1).arg(
             QString::fromStdString(inv[i]->getInfo())));
     }
     if (inv.empty()) {
         invList->addItem("背包为空 —— 去商店购买物品吧!");
+    } else if (game.player->isInventoryFull()) {
+        invList->addItem("背包已满，战斗掉落和商店购买将无法继续放入。");
     }
 }
 
 void MainWindow::onUseItem() {
-    int idx = invList->currentRow();
+    int idx = invList->currentRow() - 1;
     if (idx < 0) {
         QMessageBox::information(this, "提示", "请先选择一件物品!");
         return;
@@ -342,7 +349,7 @@ void MainWindow::onUseItem() {
             QMessageBox::information(this, "提示", "强化卷需要在城镇节点的铁匠铺使用。");
             return;
         }
-        if (name == "狂暴药水" || name == "虚弱药水") {
+        if (name == "狂暴药水" || name == "虚弱药水" || name == "疲惫药水") {
             QMessageBox::information(this, "提示", "该药水需要在战斗中通过战斗背包使用。");
             return;
         }
@@ -354,7 +361,7 @@ void MainWindow::onUseItem() {
 }
 
 void MainWindow::onDropItem() {
-    int idx = invList->currentRow();
+    int idx = invList->currentRow() - 1;
     if (idx < 0) {
         QMessageBox::information(this, "提示", "请先选择一件物品!");
         return;
@@ -563,6 +570,8 @@ void MainWindow::refreshTownServices() {
     if (!game.player) return;
 
     auto& inv = game.player->getInventory();
+    townBackpackList->addItem(QString("背包容量：%1 / %2")
+        .arg(game.player->inventoryCount()).arg(Character::MaxInventorySlots));
     for (size_t i = 0; i < inv.size(); ++i) {
         QString info = QString("[%1] %2").arg(i + 1).arg(QString::fromStdString(inv[i]->getInfo()));
         townBackpackList->addItem(info);
@@ -589,7 +598,7 @@ void MainWindow::refreshTownServices() {
 
 void MainWindow::onDepositItem() {
     QMessageBox::information(this, "仓库", QString::fromStdString(
-        game.depositItem(townBackpackList->currentRow())));
+        game.depositItem(townBackpackList->currentRow() - 1)));
     refreshAll();
 }
 
@@ -804,6 +813,13 @@ void MainWindow::createMapTab() {
     connect(adventureBtn, &QPushButton::clicked, this, &MainWindow::onAdventure);
     infoLayout->addWidget(adventureBtn);
 
+    returnTownBtn = new QPushButton("休息点回城");
+    returnTownBtn->setFixedHeight(36);
+    returnTownBtn->setStyleSheet("QPushButton { background: #455A64; color: white; border-radius: 6px; }"
+                                 "QPushButton:hover { background: #263238; }");
+    connect(returnTownBtn, &QPushButton::clicked, this, &MainWindow::onReturnToTown);
+    infoLayout->addWidget(returnTownBtn);
+
     rightPanel->addWidget(infoGroup);
 
     // Reachable locations
@@ -898,7 +914,7 @@ void MainWindow::onAdventure() {
         return;
     }
     auto reply = QMessageBox::question(this, "出城探险",
-        "出城前请确认背包里已经携带药水。死亡会掉落身上半数金币，背包每件物品都有50%概率掉落。\n\n是否出城？",
+        "出城前请确认背包里已经携带药水。死亡会掉落身上半数金币，背包每件物品都有50%概率掉落。\n每完成3次战斗会发现一个休息点，可通过休息点回城。\n\n是否出城？",
         QMessageBox::Yes | QMessageBox::No);
     if (reply != QMessageBox::Yes) return;
 
@@ -915,17 +931,30 @@ void MainWindow::onAdventure() {
     refreshAll();
 }
 
+void MainWindow::onReturnToTown() {
+    std::string result = game.returnToTown();
+    mapLog->append(QString::fromStdString(result));
+    QMessageBox::information(this, "休息点", QString::fromStdString(result));
+    refreshAll();
+}
+
 void MainWindow::refreshMapPanel() {
     if (!game.map) return;
     auto& loc = game.map->getCurrentLocation();
     mapLocationLabel->setText(QString::fromStdString(loc.icon + " " + loc.name));
-    mapDescLabel->setText(QString::fromStdString(loc.description));
+    mapDescLabel->setText(QString("%1\n城镇/区域：%2（推荐等级 %3-%4）\n休息点：%5")
+        .arg(QString::fromStdString(loc.description))
+        .arg(QString::fromStdString(game.currentTownName()))
+        .arg(game.currentTownMinLevel())
+        .arg(game.currentTownMaxLevel())
+        .arg(game.restPointAvailable ? "已发现，可回城" : "未发现"));
     mapWidget->setCurrentLocation(game.map->currentLocation);
 
     // Show/hide rest button
     restBtn->setVisible(loc.hasRest);
     restBtn->setEnabled(loc.hasRest);
     adventureBtn->setEnabled(game.isTown());
+    returnTownBtn->setEnabled(game.restPointAvailable || game.isTown());
 
     // Update reachable list
     reachableList->clear();
@@ -1188,6 +1217,11 @@ void MainWindow::onBattleTick() {
         game.player->gainExp(er);
         game.player->addGold(gr);
         battleLog->append(QString("获得 %1 EXP + %2 G!").arg(er).arg(gr));
+        battleLog->append(QString::fromStdString(game.addBattleRewardItem()));
+        game.recordBattleFinished();
+        if (game.restPointAvailable) {
+            battleLog->append("连续战斗后发现了休息点，可以回城整备。");
+        }
 
         // Reset enemy HP
         enemy->resetBattleState();
@@ -1196,6 +1230,22 @@ void MainWindow::onBattleTick() {
     }
 
     // Enemy attacks
+    if (enemy->consumeFatigueSkip()) {
+        battleLog->append(QString("%1 受到疲惫影响，跳过了本回合行动。")
+            .arg(QString::fromStdString(enemy->getName())));
+        refreshBattle();
+        if (rageTurnsLeft > 0) {
+            --rageTurnsLeft;
+            if (rageTurnsLeft == 0 && rageAttackBonus > 0) {
+                game.player->buffAttack(-rageAttackBonus);
+                battleLog->append("狂暴药水效果结束。");
+                rageAttackBonus = 0;
+                refreshCharacterPanel();
+            }
+        }
+        return;
+    }
+
     int edmg = enemy->attackPlayer();
     if (edmg < 0) {
         battleTimer->stop();
@@ -1258,6 +1308,10 @@ void MainWindow::onBattleTick() {
             }
         }
         if (lostItems == 0) battleLog->append("背包物品没有掉落。");
+        game.recordBattleFinished();
+        if (game.restPointAvailable) {
+            battleLog->append("战斗后发现了休息点，可以回城整备。");
+        }
         // Heal player a bit after defeat
         game.player->heal(game.player->getMaxHp() / 2);
         refreshAll();

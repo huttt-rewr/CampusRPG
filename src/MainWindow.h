@@ -63,6 +63,7 @@ private slots:
     void onMapLocationClicked(int idx);
     void onRest();
     void onAdventure();
+    void onReturnToTown();
     void refreshMapPanel();
 
     // Battle
@@ -144,6 +145,7 @@ private:
     QTextEdit* mapLog;
     QPushButton* restBtn;
     QPushButton* adventureBtn;
+    QPushButton* returnTownBtn;
     QListWidget* reachableList;
 
     // ===== Battle tab =====

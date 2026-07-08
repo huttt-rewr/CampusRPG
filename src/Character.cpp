@@ -43,11 +43,15 @@ void Character::takeDamage(int damage) {
 bool Character::isAlive() const { return hp > 0; }
 
 std::string Character::gainExp(int amount) {
+    if (level >= MaxLevel) {
+        exp = 0;
+        return "已达到等级上限 Lv.30";
+    }
     exp += amount;
     std::ostringstream oss;
     oss << "+" << amount << " EXP";
     int levelUps = 0;
-    while (exp >= expToNextLevel) {
+    while (exp >= expToNextLevel && level < MaxLevel) {
         exp -= expToNextLevel;
         levelUps++;
         level++;
@@ -57,6 +61,10 @@ std::string Character::gainExp(int amount) {
         maxMp += 8;
         hp = maxHp;
         mp = maxMp;
+        calcExpToNext();
+    }
+    if (level >= MaxLevel) {
+        exp = 0;
         calcExpToNext();
     }
     if (levelUps > 0) {
@@ -94,8 +102,10 @@ void Character::setState(const std::string& newName, int newLevel, int newHp, in
     calcExpToNext();
 }
 
-void Character::addItem(std::shared_ptr<Item> item) {
+bool Character::addItem(std::shared_ptr<Item> item) {
+    if (isInventoryFull()) return false;
     inventory.push_back(item);
+    return true;
 }
 
 std::string Character::useItem(int index) {
@@ -115,6 +125,7 @@ std::string Character::removeItem(int index) {
 
 std::vector<std::shared_ptr<Item>>& Character::getInventory() { return inventory; }
 int Character::inventoryCount() const { return (int)inventory.size(); }
+bool Character::isInventoryFull() const { return inventoryCount() >= MaxInventorySlots; }
 void Character::clearInventory() { inventory.clear(); }
 
 void Character::heal(int amount) { hp = std::min(maxHp, hp + amount); }

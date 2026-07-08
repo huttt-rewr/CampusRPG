@@ -25,6 +25,9 @@ private:
     void calcExpToNext();
 
 public:
+    static constexpr int MaxLevel = 30;
+    static constexpr int MaxInventorySlots = 20;
+
     Character();
     explicit Character(const std::string& name);
 
@@ -56,7 +59,8 @@ public:
                   int newAttack, int newDefense);
 
     // Inventory
-    void addItem(std::shared_ptr<Item> item);
+    bool addItem(std::shared_ptr<Item> item);
+    bool isInventoryFull() const;
     std::string useItem(int index);
     std::string removeItem(int index);
     std::vector<std::shared_ptr<Item>>& getInventory();

@@ -11,7 +11,8 @@ enum class SpecialEffect {
     HpPotion,
     MpPotion,
     RagePotion,
-    WeakPotion
+    WeakPotion,
+    FatiguePotion
 };
 
 class SpecialItem : public Item {
