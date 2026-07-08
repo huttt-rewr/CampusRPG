@@ -2,11 +2,17 @@
 #include "Food.h"
 #include "Medicine.h"
 #include "Equipment.h"
+#include "SpecialItem.h"
+#include <QCoreApplication>
+#include <QDir>
+#include <QFile>
+#include <QSettings>
+#include <QStringList>
 #include <sstream>
 #include <cstdlib>
 #include <ctime>
 
-GameManager::GameManager() {
+GameManager::GameManager() : bankGold(0), currentSaveSlot(-1) {
     srand((unsigned)time(nullptr));
     map = std::make_unique<GameMap>();
     initEnemies();
@@ -18,6 +24,18 @@ GameManager::~GameManager() = default;
 
 void GameManager::initPlayer(const std::string& name) {
     player = std::make_unique<Character>(name);
+}
+
+void GameManager::resetWorldForNewPlayer(const std::string& name) {
+    player = std::make_unique<Character>(name);
+    warehouse.clear();
+    bankGold = 0;
+    map = std::make_unique<GameMap>();
+    enemies.clear();
+    tasks.clear();
+    initEnemies();
+    initTasks();
+    initShop();
 }
 
 void GameManager::initEnemies() {
@@ -47,14 +65,23 @@ void GameManager::initTasks() {
 
 void GameManager::initShop() {
     shop = std::make_unique<Shop>("校园商店");
-    shop->addItem(std::make_shared<Food>("面包", 15, "恢复少量HP", 25));
-    shop->addItem(std::make_shared<Food>("烤鸡", 35, "恢复较多HP", 60));
-    shop->addItem(std::make_shared<Medicine>("力量药水", 50, "提升攻击力", "attack", 8, 3));
-    shop->addItem(std::make_shared<Medicine>("防御药水", 45, "提升防御力", "defense", 6, 3));
-    shop->addItem(std::make_shared<Medicine>("急救包", 40, "立即恢复HP", "heal", 100, 1));
-    shop->addItem(std::make_shared<Equipment>("铁剑", 80, "普通铁剑", 5, 0));
-    shop->addItem(std::make_shared<Equipment>("皮甲", 70, "轻便皮甲", 0, 4));
-    shop->addItem(std::make_shared<Equipment>("勇者之剑", 200, "传说中的宝剑", 15, 5));
+    shop->addItem(createSpecialItemById("战斗经验卡"));
+    shop->addItem(createSpecialItemById("武器强化卷"));
+    shop->addItem(createSpecialItemById("铠甲强化卷"));
+    shop->addItem(createSpecialItemById("回血药"));
+    shop->addItem(createSpecialItemById("回蓝药"));
+    shop->addItem(createSpecialItemById("狂暴药水"));
+    shop->addItem(createSpecialItemById("虚弱药水"));
+}
+
+bool GameManager::isTown() const {
+    if (!map) return false;
+    const auto& loc = map->locations[map->currentLocation];
+    return loc.hasShop || loc.hasRest;
+}
+
+std::string GameManager::currentLocationType() const {
+    return isTown() ? "城镇节点" : "野外节点";
 }
 
 bool GameManager::doBattle(int enemyIndex) {
@@ -139,6 +166,167 @@ bool GameManager::doBattle(int enemyIndex) {
 
 void GameManager::checkTaskProgress() {
     // Tasks are updated during battle
+}
+
+std::string GameManager::depositItem(int index) {
+    if (!isTown()) return "只有城镇节点可以打开仓库。";
+    if (!player) return "角色不存在。";
+    auto& inv = player->getInventory();
+    if (index < 0 || index >= (int)inv.size()) return "请选择要存入仓库的物品。";
+    std::string name = inv[index]->getName();
+    warehouse.push_back(inv[index]);
+    inv.erase(inv.begin() + index);
+    return "已将 " + name + " 存入仓库。";
+}
+
+std::string GameManager::withdrawItem(int index) {
+    if (!isTown()) return "只有城镇节点可以打开仓库。";
+    if (!player) return "角色不存在。";
+    if (index < 0 || index >= (int)warehouse.size()) return "请选择要取出的物品。";
+    std::string name = warehouse[index]->getName();
+    player->addItem(warehouse[index]);
+    warehouse.erase(warehouse.begin() + index);
+    return "已从仓库取出 " + name + "。";
+}
+
+std::string GameManager::depositGold(int amount) {
+    if (!isTown()) return "只有城镇节点可以打开银行。";
+    if (!player) return "角色不存在。";
+    if (amount <= 0) return "请输入大于0的金币数量。";
+    if (!player->spendGold(amount)) return "身上金币不足。";
+    bankGold += amount;
+    return "已存入 " + std::to_string(amount) + " G。";
+}
+
+std::string GameManager::withdrawGold(int amount) {
+    if (!isTown()) return "只有城镇节点可以打开银行。";
+    if (!player) return "角色不存在。";
+    if (amount <= 0) return "请输入大于0的金币数量。";
+    if (bankGold < amount) return "银行余额不足。";
+    bankGold -= amount;
+    player->addGold(amount);
+    return "已取出 " + std::to_string(amount) + " G。";
+}
+
+std::string GameManager::reinforceWithScroll(int inventoryIndex) {
+    if (!isTown()) return "只有城镇节点可以打开铁匠铺。";
+    if (!player) return "角色不存在。";
+    auto& inv = player->getInventory();
+    if (inventoryIndex < 0 || inventoryIndex >= (int)inv.size()) return "请选择强化卷。";
+    const std::string name = inv[inventoryIndex]->getName();
+    if (name != "武器强化卷" && name != "铠甲强化卷") {
+        return "铁匠铺只能使用武器强化卷或铠甲强化卷。";
+    }
+    std::string result = inv[inventoryIndex]->use(*player);
+    inv.erase(inv.begin() + inventoryIndex);
+    return result;
+}
+
+int GameManager::maxSaveSlots() { return 4; }
+
+std::string GameManager::saveDirPath() {
+    QDir dir(QCoreApplication::applicationDirPath());
+    dir.mkpath("saves");
+    return dir.filePath("saves").toStdString();
+}
+
+bool GameManager::saveExists(int slot) const {
+    if (slot < 1 || slot > maxSaveSlots()) return false;
+    QDir dir(QString::fromStdString(saveDirPath()));
+    return QFile::exists(dir.filePath(QString("slot%1.ini").arg(slot)));
+}
+
+std::string GameManager::saveSlotName(int slot) const {
+    if (!saveExists(slot)) return "空存档";
+    QDir dir(QString::fromStdString(saveDirPath()));
+    QSettings s(dir.filePath(QString("slot%1.ini").arg(slot)), QSettings::IniFormat);
+    return s.value("meta/name", QString("存档%1").arg(slot)).toString().toStdString();
+}
+
+std::string GameManager::saveGame(int slot) {
+    if (!player) return "没有可保存的角色。";
+    if (slot < 1 || slot > maxSaveSlots()) return "存档槽无效。";
+
+    QDir dir(QString::fromStdString(saveDirPath()));
+    QSettings s(dir.filePath(QString("slot%1.ini").arg(slot)), QSettings::IniFormat);
+    s.clear();
+    s.setValue("meta/name", QString::fromStdString(player->getName()));
+    s.setValue("meta/location", map ? map->currentLocation : 0);
+    s.setValue("player/level", player->getLevel());
+    s.setValue("player/hp", player->getHp());
+    s.setValue("player/maxHp", player->getMaxHp());
+    s.setValue("player/mp", player->getMp());
+    s.setValue("player/maxMp", player->getMaxMp());
+    s.setValue("player/exp", player->getExp());
+    s.setValue("player/gold", player->getGold());
+    s.setValue("player/attack", player->getAttack());
+    s.setValue("player/defense", player->getDefense());
+    s.setValue("bank/gold", bankGold);
+
+    QStringList invIds;
+    for (const auto& item : player->getInventory()) {
+        invIds << QString::fromStdString(item->getSaveId());
+    }
+    s.setValue("items/inventory", invIds);
+
+    QStringList whIds;
+    for (const auto& item : warehouse) {
+        whIds << QString::fromStdString(item->getSaveId());
+    }
+    s.setValue("items/warehouse", whIds);
+    s.sync();
+    currentSaveSlot = slot;
+    return "存档 " + std::to_string(slot) + " 已保存。";
+}
+
+std::string GameManager::loadGame(int slot) {
+    if (!saveExists(slot)) return "该存档槽为空。";
+    QDir dir(QString::fromStdString(saveDirPath()));
+    QSettings s(dir.filePath(QString("slot%1.ini").arg(slot)), QSettings::IniFormat);
+
+    std::string name = s.value("meta/name", "勇者").toString().toStdString();
+    resetWorldForNewPlayer(name);
+    player->setState(name,
+        s.value("player/level", 1).toInt(),
+        s.value("player/hp", 100).toInt(),
+        s.value("player/maxHp", 100).toInt(),
+        s.value("player/mp", 60).toInt(),
+        s.value("player/maxMp", 60).toInt(),
+        s.value("player/exp", 0).toInt(),
+        s.value("player/gold", 100).toInt(),
+        s.value("player/attack", 12).toInt(),
+        s.value("player/defense", 6).toInt());
+    bankGold = s.value("bank/gold", 0).toInt();
+    if (map) {
+        map->currentLocation = s.value("meta/location", 0).toInt();
+    }
+
+    player->clearInventory();
+    QStringList invIds = s.value("items/inventory").toStringList();
+    for (const QString& id : invIds) {
+        auto item = createSpecialItemById(id.toStdString());
+        if (item) player->addItem(item);
+    }
+
+    warehouse.clear();
+    QStringList whIds = s.value("items/warehouse").toStringList();
+    for (const QString& id : whIds) {
+        auto item = createSpecialItemById(id.toStdString());
+        if (item) warehouse.push_back(item);
+    }
+
+    currentSaveSlot = slot;
+    return "已读取存档 " + std::to_string(slot) + "。";
+}
+
+std::string GameManager::deleteSave(int slot) {
+    if (slot < 1 || slot > maxSaveSlots()) return "存档槽无效。";
+    QDir dir(QString::fromStdString(saveDirPath()));
+    QString path = dir.filePath(QString("slot%1.ini").arg(slot));
+    if (!QFile::exists(path)) return "该存档槽已经为空。";
+    QFile::remove(path);
+    if (currentSaveSlot == slot) currentSaveSlot = -1;
+    return "已删除存档 " + std::to_string(slot) + "。";
 }
 
 std::string GameManager::moveTo(int locIndex) {

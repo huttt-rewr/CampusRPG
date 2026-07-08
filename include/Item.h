@@ -4,6 +4,7 @@
 #include <string>
 
 class Character;
+class Enemy;
 
 class Item {
 protected:
@@ -18,7 +19,9 @@ public:
     virtual ~Item() = default;
 
     virtual std::string use(Character& character) = 0;
+    virtual std::string useInBattle(Character& character, Enemy* enemy);
     virtual std::string getInfo() const;
+    virtual std::string getSaveId() const;
 
     std::string getName() const;
     std::string getType() const;

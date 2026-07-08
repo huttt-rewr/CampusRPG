@@ -11,6 +11,7 @@ protected:
     int hp;
     int maxHp;
     int attack;
+    int baseAttack;
     int defense;
     int expReward;
     int goldReward;
@@ -31,6 +32,8 @@ public:
     int getMaxHp() const;
     int getAttack() const;
     int getDefense() const;
+    void buffAttack(int amount);
+    virtual void resetBattleState();
 };
 
 class NormalMonster : public Enemy {
@@ -64,6 +67,7 @@ public:
     std::string getSkillName() const;
     void checkPhase();
     int getPhase() const;
+    void resetBattleState() override;
 };
 
 #endif

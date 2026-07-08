@@ -13,6 +13,8 @@ private:
     int level;
     int hp;
     int maxHp;
+    int mp;
+    int maxMp;
     int exp;
     int expToNextLevel;
     int gold;
@@ -31,6 +33,8 @@ public:
     int getLevel() const;
     int getHp() const;
     int getMaxHp() const;
+    int getMp() const;
+    int getMaxMp() const;
     int getExp() const;
     int getExpToNextLevel() const;
     int getGold() const;
@@ -47,6 +51,9 @@ public:
     std::string levelUp();
     void addGold(int amount);
     bool spendGold(int amount);
+    void setState(const std::string& newName, int newLevel, int newHp, int newMaxHp,
+                  int newMp, int newMaxMp, int newExp, int newGold,
+                  int newAttack, int newDefense);
 
     // Inventory
     void addItem(std::shared_ptr<Item> item);
@@ -54,9 +61,11 @@ public:
     std::string removeItem(int index);
     std::vector<std::shared_ptr<Item>>& getInventory();
     int inventoryCount() const;
+    void clearInventory();
 
     // Buffs
     void heal(int amount);
+    void restoreMana(int amount);
     void buffAttack(int amount);
     void buffDefense(int amount);
 };

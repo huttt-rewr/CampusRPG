@@ -1,8 +1,9 @@
 #include "Enemy.h"
 #include <cstdlib>
+#include <algorithm>
 
 Enemy::Enemy(const std::string& n, int h, int a, int d, int er, int gr)
-    : name(n), hp(h), maxHp(h), attack(a), defense(d),
+    : name(n), hp(h), maxHp(h), attack(a), baseAttack(a), defense(d),
       expReward(er), goldReward(gr) {}
 
 int Enemy::attackPlayer() const { return attack; }
@@ -17,6 +18,11 @@ int Enemy::getHp() const { return hp; }
 int Enemy::getMaxHp() const { return maxHp; }
 int Enemy::getAttack() const { return attack; }
 int Enemy::getDefense() const { return defense; }
+void Enemy::buffAttack(int amount) { attack = std::max(1, attack + amount); }
+void Enemy::resetBattleState() {
+    hp = maxHp;
+    attack = baseAttack;
+}
 
 // NormalMonster
 NormalMonster::NormalMonster(const std::string& n, int h, int a, int d,
@@ -62,3 +68,7 @@ void Boss::checkPhase() {
     }
 }
 int Boss::getPhase() const { return phase; }
+void Boss::resetBattleState() {
+    Enemy::resetBattleState();
+    phase = 1;
+}

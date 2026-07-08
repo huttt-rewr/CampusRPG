@@ -16,6 +16,7 @@
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QTimer>
+#include <QSpinBox>
 #include "GameManager.h"
 #include "MapWidget.h"
 
@@ -28,6 +29,11 @@ public:
 
 private slots:
     // Character
+    void refreshSaveSlots();
+    void onNewSave();
+    void onLoadSave();
+    void onSaveCurrent();
+    void onDeleteSave();
     void refreshCharacterPanel();
 
     // Inventory
@@ -40,6 +46,14 @@ private slots:
     void onBuyItem();
     void onSellItem();
 
+    // Town services
+    void refreshTownServices();
+    void onDepositItem();
+    void onWithdrawItem();
+    void onDepositGold();
+    void onWithdrawGold();
+    void onReinforceItem();
+
     // Task
     void refreshTasks();
     void onAcceptTask();
@@ -48,18 +62,22 @@ private slots:
     // Map
     void onMapLocationClicked(int idx);
     void onRest();
+    void onAdventure();
     void refreshMapPanel();
 
     // Battle
     void refreshBattle();
     void onStartBattle();
     void onBattleTick();
+    void onUseBattleItem();
 
 private:
     void setupUI();
     void createCharacterTab();
+    void createSaveTab();
     void createInventoryTab();
     void createShopTab();
+    void createTownTab();
     void createTaskTab();
     void createMapTab();
     void createBattleTab();
@@ -70,6 +88,13 @@ private:
 
     // Tab widget
     QTabWidget* tabs;
+
+    // ===== Save tab =====
+    QListWidget* saveList;
+    QPushButton* newSaveBtn;
+    QPushButton* loadSaveBtn;
+    QPushButton* saveCurrentBtn;
+    QPushButton* deleteSaveBtn;
 
     // ===== Character tab =====
     QLabel* charNameLabel;
@@ -94,6 +119,18 @@ private:
     QPushButton* sellBtn;
     QLabel* shopGoldLabel;
 
+    // ===== Town services tab =====
+    QLabel* townStatusLabel;
+    QListWidget* townBackpackList;
+    QListWidget* warehouseList;
+    QPushButton* depositItemBtn;
+    QPushButton* withdrawItemBtn;
+    QLabel* bankGoldLabel;
+    QPushButton* depositGoldBtn;
+    QPushButton* withdrawGoldBtn;
+    QListWidget* forgeList;
+    QPushButton* reinforceBtn;
+
     // ===== Task tab =====
     QListWidget* taskList;
     QPushButton* acceptBtn;
@@ -106,6 +143,7 @@ private:
     QLabel* mapDescLabel;
     QTextEdit* mapLog;
     QPushButton* restBtn;
+    QPushButton* adventureBtn;
     QListWidget* reachableList;
 
     // ===== Battle tab =====
@@ -118,9 +156,13 @@ private:
     QTextEdit* battleLog;
     QLabel* battleStatus;
     QTimer* battleTimer;
+    QListWidget* battleItemList;
+    QPushButton* useBattleItemBtn;
 
     int currentEnemyIndex;
     bool inBattle;
+    int rageTurnsLeft;
+    int rageAttackBonus;
 };
 
 #endif

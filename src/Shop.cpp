@@ -13,7 +13,6 @@ std::string Shop::buyItem(int index, Character& c) {
         return "金币不足! 需要 " + std::to_string(item->getPrice()) + "G";
     std::string n = item->getName();
     c.addItem(item);
-    items.erase(items.begin() + index);
     return "购买了 " + n + "!";
 }
 

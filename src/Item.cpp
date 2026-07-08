@@ -11,6 +11,12 @@ std::string Item::getInfo() const {
     return oss.str();
 }
 
+std::string Item::useInBattle(Character& character, Enemy*) {
+    return use(character);
+}
+
+std::string Item::getSaveId() const { return name; }
+
 std::string Item::getName() const { return name; }
 std::string Item::getType() const { return type; }
 int Item::getPrice() const { return price; }

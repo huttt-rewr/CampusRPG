@@ -17,6 +17,7 @@ SOURCES += \
     src/Enemy.cpp \
     src/Task.cpp \
     src/Shop.cpp \
+    src/SpecialItem.cpp \
     src/GameManager.cpp \
     src/Location.cpp
 
@@ -31,6 +32,7 @@ HEADERS += \
     include/Enemy.h \
     include/Task.h \
     include/Shop.h \
+    include/SpecialItem.h \
     include/GameManager.h \
     include/Location.h
 

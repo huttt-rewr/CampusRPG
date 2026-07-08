@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <vector>
+#include <string>
 #include "Character.h"
 #include "Enemy.h"
 #include "Task.h"
@@ -18,6 +19,9 @@ public:
     std::unique_ptr<GameMap> map;
     std::string battleLog;
     std::string messageLog;
+    std::vector<std::shared_ptr<Item>> warehouse;
+    int bankGold;
+    int currentSaveSlot;
 
     GameManager();
     ~GameManager();
@@ -26,6 +30,9 @@ public:
     void initEnemies();
     void initTasks();
     void initShop();
+    void resetWorldForNewPlayer(const std::string& name);
+    bool isTown() const;
+    std::string currentLocationType() const;
 
     // Map
     std::string moveTo(int locIndex);
@@ -37,6 +44,22 @@ public:
 
     // Tasks
     void checkTaskProgress();
+
+    // Storage and bank
+    std::string depositItem(int index);
+    std::string withdrawItem(int index);
+    std::string depositGold(int amount);
+    std::string withdrawGold(int amount);
+    std::string reinforceWithScroll(int inventoryIndex);
+
+    // Save slots
+    static int maxSaveSlots();
+    static std::string saveDirPath();
+    bool saveExists(int slot) const;
+    std::string saveSlotName(int slot) const;
+    std::string saveGame(int slot);
+    std::string loadGame(int slot);
+    std::string deleteSave(int slot);
 };
 
 #endif

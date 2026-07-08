@@ -22,6 +22,8 @@ set(SOURCES
     src/main.cpp
     src/MainWindow.cpp
     src/MainWindow.h
+    src/MapWidget.cpp
+    src/MapWidget.h
     src/Character.cpp
     src/Item.cpp
     src/Food.cpp
@@ -30,7 +32,9 @@ set(SOURCES
     src/Enemy.cpp
     src/Task.cpp
     src/Shop.cpp
+    src/SpecialItem.cpp
     src/GameManager.cpp
+    src/Location.cpp
 )
 
 set(HEADERS
@@ -42,7 +46,9 @@ set(HEADERS
     include/Enemy.h
     include/Task.h
     include/Shop.h
+    include/SpecialItem.h
     include/GameManager.h
+    include/Location.h
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
