@@ -1,15 +1,12 @@
 // main.cpp
-// 程序入口：创建游戏管理对象并启动主流程。
-#include "GameManager.h"
-#include <iostream>
+// Qt 程序入口：启动校园 RPG 图形窗口。
+#include "MainWindow.h"
+#include <QApplication>
 
-int main() {
-    try {
-        GameManager game;
-        game.run();
-    } catch (const std::exception& ex) {
-        std::cout << "程序发生异常：" << ex.what() << "\n";
-        return 1;
-    }
-    return 0;
+int main(int argc, char* argv[]) {
+    QApplication app(argc, argv);
+    app.setApplicationName("CampusRPG");
+    MainWindow window;
+    window.show();
+    return app.exec();
 }

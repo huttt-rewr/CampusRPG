@@ -64,6 +64,7 @@ qrc_*.cpp
 build/
 Build/
 build-*/
+_qt_publish/
 
 # CMake generated files
 CMakeFiles/

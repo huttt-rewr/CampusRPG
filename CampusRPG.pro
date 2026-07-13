@@ -1,2 +1,15 @@
-# CampusRPG.pro
-# 兼容旧文件名的说明：当前版本为标准 C++ 控制台项目，请使用 CMakeLists.txt 或 BuildGame.cmd 构建。
+QT += core gui widgets
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+
+TARGET = CampusRPG_GUI
+TEMPLATE = app
+CONFIG += c++17
+
+SOURCES += \
+    src/main.cpp \
+    src/MainWindow.cpp
+
+HEADERS += \
+    src/MainWindow.h
+
+INCLUDEPATH += include src
