@@ -2,169 +2,186 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QTabWidget>
-#include <QLabel>
-#include <QProgressBar>
-#include <QPushButton>
-#include <QListWidget>
-#include <QTextEdit>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QGroupBox>
-#include <QComboBox>
-#include <QLineEdit>
-#include <QInputDialog>
-#include <QMessageBox>
-#include <QTimer>
-#include <QSpinBox>
-#include "GameManager.h"
-#include "MapWidget.h"
+#include <QSet>
+#include <QString>
+#include <QStringList>
+#include <QVector>
+
+class QComboBox;
+class QGridLayout;
+class QLabel;
+class QListWidget;
+class QPushButton;
+class QTableWidget;
+class QTabWidget;
+class QTextEdit;
 
 class MainWindow : public QMainWindow {
-    Q_OBJECT
-
 public:
     explicit MainWindow(QWidget* parent = nullptr);
-    ~MainWindow();
+    ~MainWindow() override;
 
-private slots:
-    // Character
-    void refreshSaveSlots();
+    struct CharacterData {
+        QString name;
+        QString role;
+        QString desc;
+        int level = 1;
+        int exp = 0;
+        int hp = 100;
+        int maxHp = 100;
+        int mp = 50;
+        int maxMp = 50;
+        int stamina = 100;
+        int maxStamina = 100;
+        int physAtk = 10;
+        int magicAtk = 10;
+        int physDef = 5;
+        int magicRes = 5;
+        bool active = false;
+        QString position = "后排";
+        QStringList skills;
+    };
+
+    struct ItemData {
+        QString name;
+        QString type;
+        QString desc;
+        int price = 0;
+        bool battleUsable = false;
+    };
+
+private:
+    void setupUi();
+    void setupSaveTab();
+    void setupRoleTab();
+    void setupScheduleTab();
+    void setupAngelShopTab();
+    void setupDungeonTab();
+    void setupFormationTab();
+    void setupInventoryTab();
+    void setupJournalTab();
+    void setupQuestTab();
+    void applyStyle();
+
+    void initializeCatalogs();
+    void createDefaultSchedule();
+    void createInitialParty(const QStringList& names);
+    void clearGameState();
+    void refreshAll();
+    void saveScheduleFromTable();
+    void loadScheduleToTable(int characterIndex);
+    void refreshSaveList();
+    void refreshRoleTable();
+    void refreshScheduleSummary();
+    void refreshAngelShop();
+    void refreshDungeonView();
+    void refreshFormationView();
+    void refreshInventoryList();
+    void refreshJournal();
+    void refreshQuestList();
+    void appendLog(const QString& message);
+
+    QString saveDirectory() const;
+    QString savePath(int slot) const;
+    bool saveExists(int slot) const;
+    QString saveSummary(int slot) const;
+    bool saveGame(int slot);
+    bool loadGame(int slot);
+    void deleteSaveFile(int slot);
+
+    void addItem(const ItemData& item, int count = 1);
+    void grantExp(int amount);
+    void applyLevelUps(CharacterData& c);
+    int partyPower() const;
+    int activeCount() const;
+    QVector<int> activeIndexes() const;
+    ItemData equipmentForFloor(int floorValue) const;
+    ItemData findCatalogItem(const QString& name) const;
+    QString currentRoomType() const;
+    QString enemyNameForFloor(int floorValue, bool elite) const;
+    void enterNewFloor(int nextFloor);
+    void resolveBattle(bool elite, bool boss);
+    void handlePartyDefeat();
+    void snapshotBeforeDungeon();
+    void restoreBeforeDungeon();
+    void completeQuest(const QString& key);
+
     void onNewSave();
     void onLoadSave();
     void onSaveCurrent();
     void onDeleteSave();
-    void refreshCharacterPanel();
+    void onApplySchedule();
+    void onWinterRest();
+    void onWinterWork();
+    void onBuyAngelItem();
+    void onEnterDungeon();
+    void onNextRoom();
+    void onOpenTreasure();
+    void onDemonShop();
+    void onBuyDemonItem();
+    void onSetFormation();
+    void onToggleActive();
+    void onUseInventoryItem();
+    void onDropInventoryItem();
 
-    // Inventory
-    void refreshInventory();
-    void onUseItem();
-    void onDropItem();
+    QTabWidget* tabs = nullptr;
 
-    // Shop
-    void refreshShop();
-    void onBuyItem();
-    void onSellItem();
+    QListWidget* saveList = nullptr;
+    QPushButton* newSaveBtn = nullptr;
+    QPushButton* loadSaveBtn = nullptr;
+    QPushButton* saveCurrentBtn = nullptr;
+    QPushButton* deleteSaveBtn = nullptr;
 
-    // Town services
-    void refreshTownServices();
-    void onDepositItem();
-    void onWithdrawItem();
-    void onDepositGold();
-    void onWithdrawGold();
-    void onReinforceItem();
+    QTableWidget* roleTable = nullptr;
+    QTextEdit* skillText = nullptr;
 
-    // Task
-    void refreshTasks();
-    void onAcceptTask();
-    void onClaimReward();
+    QComboBox* scheduleCharacterBox = nullptr;
+    QTableWidget* scheduleTable = nullptr;
+    QLabel* scheduleSummaryLabel = nullptr;
 
-    // Map
-    void onMapLocationClicked(int idx);
-    void onRest();
-    void onAdventure();
-    void onReturnToTown();
-    void refreshMapPanel();
+    QListWidget* angelShopList = nullptr;
+    QLabel* angelGoldLabel = nullptr;
 
-    // Battle
-    void refreshBattle();
-    void onStartBattle();
-    void onBattleTick();
-    void onUseBattleItem();
+    QLabel* dungeonStateLabel = nullptr;
+    QTextEdit* dungeonLog = nullptr;
+    QPushButton* enterDungeonBtn = nullptr;
+    QPushButton* nextRoomBtn = nullptr;
+    QPushButton* treasureBtn = nullptr;
+    QPushButton* demonShopBtn = nullptr;
+    QListWidget* demonShopList = nullptr;
 
-private:
-    void setupUI();
-    void createCharacterTab();
-    void createSaveTab();
-    void createInventoryTab();
-    void createShopTab();
-    void createTownTab();
-    void createTaskTab();
-    void createMapTab();
-    void createBattleTab();
-    void applyStyleSheet();
-    void refreshAll();
+    QListWidget* formationList = nullptr;
+    QComboBox* formationBox = nullptr;
 
-    GameManager game;
+    QListWidget* inventoryList = nullptr;
+    QLabel* inventorySummaryLabel = nullptr;
 
-    // Tab widget
-    QTabWidget* tabs;
+    QTextEdit* journalText = nullptr;
+    QListWidget* questList = nullptr;
 
-    // ===== Save tab =====
-    QListWidget* saveList;
-    QPushButton* newSaveBtn;
-    QPushButton* loadSaveBtn;
-    QPushButton* saveCurrentBtn;
-    QPushButton* deleteSaveBtn;
+    QVector<CharacterData> party;
+    QVector<CharacterData> preDungeonParty;
+    QVector<ItemData> inventory;
+    QVector<ItemData> preDungeonInventory;
+    QVector<ItemData> angelCatalog;
+    QVector<ItemData> demonCatalog;
+    QSet<QString> knownEnemies;
+    QSet<QString> completedQuests;
+    QVector<QStringList> schedules;
 
-    // ===== Character tab =====
-    QLabel* charNameLabel;
-    QLabel* charLevelLabel;
-    QProgressBar* hpBar;
-    QLabel* hpLabel;
-    QProgressBar* expBar;
-    QLabel* expLabel;
-    QLabel* goldLabel;
-    QLabel* atkLabel;
-    QLabel* defLabel;
-
-    // ===== Inventory tab =====
-    QListWidget* invList;
-    QPushButton* useItemBtn;
-    QPushButton* dropItemBtn;
-
-    // ===== Shop tab =====
-    QListWidget* shopList;
-    QPushButton* buyBtn;
-    QListWidget* playerSellList;
-    QPushButton* sellBtn;
-    QLabel* shopGoldLabel;
-
-    // ===== Town services tab =====
-    QLabel* townStatusLabel;
-    QListWidget* townBackpackList;
-    QListWidget* warehouseList;
-    QPushButton* depositItemBtn;
-    QPushButton* withdrawItemBtn;
-    QLabel* bankGoldLabel;
-    QPushButton* depositGoldBtn;
-    QPushButton* withdrawGoldBtn;
-    QListWidget* forgeList;
-    QPushButton* reinforceBtn;
-
-    // ===== Task tab =====
-    QListWidget* taskList;
-    QPushButton* acceptBtn;
-    QPushButton* claimBtn;
-    QTextEdit* taskDetail;
-
-    // ===== Map tab =====
-    MapWidget* mapWidget;
-    QLabel* mapLocationLabel;
-    QLabel* mapDescLabel;
-    QTextEdit* mapLog;
-    QPushButton* restBtn;
-    QPushButton* adventureBtn;
-    QPushButton* returnTownBtn;
-    QListWidget* reachableList;
-
-    // ===== Battle tab =====
-    QComboBox* enemyCombo;
-    QPushButton* battleBtn;
-    QProgressBar* battleHpBar;
-    QLabel* battleHpLabel;
-    QProgressBar* enemyHpBar;
-    QLabel* enemyHpLabel;
-    QTextEdit* battleLog;
-    QLabel* battleStatus;
-    QTimer* battleTimer;
-    QListWidget* battleItemList;
-    QPushButton* useBattleItemBtn;
-
-    int currentEnemyIndex;
-    bool inBattle;
-    int rageTurnsLeft;
-    int rageAttackBonus;
+    int activeSaveSlot = -1;
+    int gold = 0;
+    int demonCoins = 0;
+    int loopCount = 1;
+    int termCount = 1;
+    int currentFloor = 0;
+    int currentRoom = 0;
+    int eliteRoom = 6;
+    int chestRoom = 3;
+    int formationMode = 0;
+    bool hasGame = false;
+    bool inDungeon = false;
+    bool preDungeonSnapshotValid = false;
 };
 
 #endif
