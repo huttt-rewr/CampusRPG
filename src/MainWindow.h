@@ -52,6 +52,7 @@ private slots:
     void claimTask();
     void setFormationOneFront();
     void setFormationTwoFront();
+    void toggleSelectedRoleActive();
     void moveRoleUp();
     void moveRoleDown();
     void enterDungeon();
@@ -99,6 +100,7 @@ private:
         int magicResistance = 5;
         int battleStun = 0;
         int tauntRounds = 0;
+        bool active = true;
         QMap<QString, QString> equipment;
     };
 
@@ -184,6 +186,7 @@ private:
     void endBattleIfNeeded();
     void nextLoopAfterDeath();
     int alivePlayerCount() const;
+    int activeRoleCount() const;
     int aliveEnemyCount() const;
     int firstAliveEnemy() const;
     int firstAlivePlayer() const;
@@ -210,6 +213,7 @@ private:
     void deserializeTasks(const QString& text);
     QString serializeCodex() const;
     void deserializeCodex(const QString& text);
+    QString activeText(const CharacterData& role, int visibleIndex) const;
 
     QStackedWidget* stack = nullptr;
     QWidget* savePage = nullptr;

@@ -98,20 +98,23 @@ void MainWindow::setupData() {
     };
 
     tasks = {
-        {1, "角色命名", "创建第一名角色并命名。", "创建角色", "任意", 1, 0, 0, 100, 0, ""},
-        {2, "天使商店购物", "在进入地窟前完成一次天使商店购物。", "天使购物", "任意", 1, 0, 0, 0, 20, ""},
-        {3, "恶魔商店购物", "在地窟恶魔商店完成一次购物。", "恶魔购物", "任意", 1, 0, 0, 0, 0, "第一层学生木剑"},
-        {4, "装备穿戴", "为任意角色穿戴一件装备。", "穿戴装备", "任意", 1, 0, 0, 0, 15, ""},
-        {5, "编队", "调整一次上阵阵型或站位。", "编队", "任意", 1, 0, 0, 0, 15, ""},
-        {6, "人生第一个宝箱房", "开启地窟中的第一个宝箱房。", "宝箱", "任意", 1, 0, 0, 80, 10, ""},
-        {7, "人生第一次战斗", "完成地窟中的第一次战斗。", "战斗", "任意", 1, 0, 0, 100, 10, ""},
-        {8, "通关第一层", "通过神秘地窟第一层。", "通层", "1", 1, 0, 0, 120, 15, ""},
-        {9, "通关第二层", "通过神秘地窟第二层。", "通层", "2", 1, 0, 0, 150, 20, ""},
-        {10, "通关第三层", "通过神秘地窟第三层。", "通层", "3", 1, 0, 0, 180, 25, ""},
-        {11, "通关第四层", "通过神秘地窟第四层。", "通层", "4", 1, 0, 0, 210, 30, ""},
-        {12, "通关第五层", "通过神秘地窟第五层。", "通层", "5", 1, 0, 0, 240, 35, ""},
-        {13, "通关第六层", "通过神秘地窟第六层。", "通层", "6", 1, 0, 0, 270, 40, ""},
-        {14, "打败最终BOSS逃离轮回", "打通七层地窟最终BOSS，打破诅咒。", "最终BOSS", "终焉挂科龙", 1, 0, 0, 1000, 100, ""}
+        {1, "角色命名", "为六名预设职业角色完成命名。", "创建角色", "任意", 1, 0, 0, 100, 0, ""},
+        {2, "第一次选课", "执行第一学期课表，熟悉一周14个半天。", "选课", "任意", 1, 0, 0, 120, 0, ""},
+        {3, "第一次过寒假", "完成寒假休息或寒假打工选择。", "寒假", "任意", 1, 0, 0, 150, 0, ""},
+        {4, "天使商店购物", "了解金币清空规则、食品和药品区别，完成任意一次购物。", "天使购物", "任意", 1, 0, 0, 0, 20, ""},
+        {5, "恶魔商店购物", "在地窟恶魔商店完成一次购物。", "恶魔购物", "任意", 1, 0, 0, 0, 0, "生锈的哑铃"},
+        {6, "装备穿戴", "为任意角色穿戴一件装备。", "穿戴装备", "任意", 1, 0, 0, 0, 15, ""},
+        {7, "编队", "完成上阵/下阵、阵型或站位调整。", "编队", "任意", 1, 0, 0, 0, 15, ""},
+        {8, "人生第一个宝箱房", "开启地窟中的第一个宝箱房。", "宝箱", "任意", 1, 0, 0, 80, 10, ""},
+        {9, "人生第一次战斗", "进入地窟中的第一次战斗。", "开战", "任意", 1, 0, 0, 80, 10, ""},
+        {10, "人生第一次胜利", "赢下第一场地窟战斗，了解掉落规则。", "战斗胜利", "任意", 1, 0, 0, 100, 20, ""},
+        {11, "通关第一层", "通过神秘地窟第一层。", "通层", "1", 1, 0, 0, 120, 15, ""},
+        {12, "通关第二层", "通过神秘地窟第二层。", "通层", "2", 1, 0, 0, 150, 20, ""},
+        {13, "通关第三层", "通过神秘地窟第三层。", "通层", "3", 1, 0, 0, 180, 25, ""},
+        {14, "通关第四层", "通过神秘地窟第四层。", "通层", "4", 1, 0, 0, 210, 30, ""},
+        {15, "通关第五层", "通过神秘地窟第五层。", "通层", "5", 1, 0, 0, 240, 35, ""},
+        {16, "通关第六层", "通过神秘地窟第六层。", "通层", "6", 1, 0, 0, 270, 40, ""},
+        {17, "逃离轮回", "击败第七层最终BOSS伪典校长·零。", "最终BOSS", "伪典校长·零", 1, 0, 0, 1000, 100, ""}
     };
 }
 
@@ -174,18 +177,21 @@ void MainWindow::setupGamePage() {
     characterList = new QListWidget(rolePage);
     auto* formation1 = new QPushButton("阵型：前排1 后排2", rolePage);
     auto* formation2 = new QPushButton("阵型：前排2 后排1", rolePage);
+    auto* activeBtn = new QPushButton("选中角色 上阵/下阵", rolePage);
     auto* upBtn = new QPushButton("选中角色上移站位", rolePage);
     auto* downBtn = new QPushButton("选中角色下移站位", rolePage);
     auto* equipBtn = new QPushButton("给选中角色穿戴背包选中装备", rolePage);
     roleLayout->addWidget(characterList, 1);
     roleLayout->addWidget(formation1);
     roleLayout->addWidget(formation2);
+    roleLayout->addWidget(activeBtn);
     roleLayout->addWidget(upBtn);
     roleLayout->addWidget(downBtn);
     roleLayout->addWidget(equipBtn);
     tabs->addTab(rolePage, "角色编队");
     connect(formation1, &QPushButton::clicked, this, &MainWindow::setFormationOneFront);
     connect(formation2, &QPushButton::clicked, this, &MainWindow::setFormationTwoFront);
+    connect(activeBtn, &QPushButton::clicked, this, &MainWindow::toggleSelectedRoleActive);
     connect(upBtn, &QPushButton::clicked, this, &MainWindow::moveRoleUp);
     connect(downBtn, &QPushButton::clicked, this, &MainWindow::moveRoleDown);
     connect(equipBtn, &QPushButton::clicked, this, &MainWindow::equipSelectedItem);
@@ -280,20 +286,24 @@ void MainWindow::updateUiScale() {
     int radius = std::max(5, base / 3);
 
     setStyleSheet(QString(
-        "QMainWindow{background:#f4f6f8;color:#202833;}"
-        "QLabel{font-size:%1px;line-height:1.35;}"
-        "QPushButton{font-size:%2px;padding:%3px %4px;border:1px solid #9aa8b8;border-radius:%5px;background:#ffffff;}"
-        "QPushButton:hover{background:#eaf2ff;}"
-        "QPushButton:disabled{color:#9aa3ad;background:#eef1f5;}"
-        "QTabWidget::pane{border:1px solid #c9d3df;background:#ffffff;}"
-        "QTabBar::tab{font-size:%6px;padding:%3px %4px;background:#e3e9f1;border:1px solid #c9d3df;}"
-        "QTabBar::tab:selected{background:#ffffff;font-weight:600;}"
-        "QListWidget,QTextEdit,QTableWidget,QComboBox{font-size:%7px;background:#ffffff;border:1px solid #c9d3df;border-radius:%5px;padding:%8px;}"
-        "QHeaderView::section{font-size:%7px;padding:%8px;background:#edf1f6;border:1px solid #c9d3df;}"
+        "QMainWindow{background:#eef3f8;color:#1f2933;}"
+        "QWidget{font-family:'Microsoft YaHei','SimHei',sans-serif;}"
+        "QLabel{font-size:%1px;line-height:1.35;color:#1f2933;}"
+        "QPushButton{font-size:%2px;padding:%3px %4px;border:1px solid #7f95ad;border-radius:%5px;background:#ffffff;color:#1f2933;}"
+        "QPushButton:hover{background:#e6f0ff;border-color:#4f7fbd;}"
+        "QPushButton:pressed{background:#d5e6ff;}"
+        "QPushButton:disabled{color:#9aa3ad;background:#eef1f5;border-color:#c8d0da;}"
+        "QTabWidget::pane{border:1px solid #c1ccd9;background:#ffffff;}"
+        "QTabBar::tab{font-size:%6px;padding:%3px %4px;background:#dbe5f0;border:1px solid #c1ccd9;color:#263544;}"
+        "QTabBar::tab:selected{background:#ffffff;font-weight:600;border-bottom:2px solid #4f7fbd;}"
+        "QListWidget,QTextEdit,QTableWidget,QComboBox{font-size:%7px;background:#ffffff;border:1px solid #c1ccd9;border-radius:%5px;padding:%8px;selection-background-color:#cfe1ff;selection-color:#102033;}"
+        "QListWidget::item{padding:%8px;border-bottom:1px solid #edf1f6;}"
+        "QListWidget::item:selected{background:#cfe1ff;border-left:4px solid #4f7fbd;}"
+        "QHeaderView::section{font-size:%7px;padding:%8px;background:#edf3fa;border:1px solid #c1ccd9;color:#263544;}"
     ).arg(base).arg(buttonFont).arg(padY).arg(padX).arg(radius).arg(tabFont).arg(listFont).arg(std::max(5, base / 3)));
 
     if (saveTitleLabel) {
-        saveTitleLabel->setStyleSheet(QString("font-size:%1px;font-weight:700;padding:%2px;").arg(titleFont).arg(std::max(16, base)));
+        saveTitleLabel->setStyleSheet(QString("font-size:%1px;font-weight:800;padding:%2px;color:#102033;").arg(titleFont).arg(std::max(16, base)));
     }
     if (slotGrid) {
         for (int i = 0; i < slotGrid->count(); ++i) {
@@ -372,7 +382,7 @@ void MainWindow::refreshOverview() {
         .arg(phaseText()).arg(currentSlot).arg(loopCount).arg(semester)
         .arg(gold).arg(demonCoin).arg(initialVigorBonus).arg(initialGoldBonus)
         .arg(workGoldBonus).arg(demonFriendBonus).arg(angelDiscount)
-        .arg(demonDiscount).arg(party.size()).arg(formationType == 1 ? "前排1 后排2" : "前排2 后排1")
+        .arg(demonDiscount).arg(activeRoleCount()).arg(formationType == 1 ? "前排1 后排2" : "前排2 后排1")
         .arg(inventory.size()).arg(kInventoryLimit));
 }
 
@@ -400,13 +410,10 @@ void MainWindow::refreshSchedulePreview() {
 void MainWindow::refreshCharacters() {
     if (!characterList) return;
     characterList->clear();
+    int activeIndex = 0;
     for (int i = 0; i < party.size(); ++i) {
-        QString position;
-        if (formationType == 1) {
-            position = (i == 0) ? "前排" : "后排";
-        } else {
-            position = (i < 2) ? "前排" : "后排";
-        }
+        QString position = activeText(party[i], activeIndex);
+        if (party[i].active) activeIndex++;
         characterList->addItem(QString("%1 [%2]\n%3\n技能：\n%4")
             .arg(roleText(party[i])).arg(position).arg(party[i].equipment.isEmpty() ? "装备：无" : "装备：" + QStringList(party[i].equipment.values()).join("、"))
             .arg(skillsText(party[i])));
@@ -521,21 +528,24 @@ void MainWindow::slotClicked() {
 
 void MainWindow::createInSelectedSlot() {
     if (selectedSlot < 1 || selectedSlot > kSlotCount) return;
-    QStringList names;
-    for (const auto& p : professions) names << QString::fromStdString(p->name());
-    bool ok = false;
-    QString prof = QInputDialog::getItem(this, "选择职业", "请选择 6 个预设职业之一：", names, 0, false, &ok);
-    if (!ok || prof.isEmpty()) return;
-    QString roleName = QInputDialog::getText(this, "角色命名", "请输入自定义角色名：", QLineEdit::Normal, "", &ok).trimmed();
-    if (!ok || roleName.isEmpty()) return;
     currentSlot = selectedSlot;
     resetGameForNewRun(false);
-    createCharacter(prof, roleName);
+    for (const auto& prof : professions) {
+        bool ok = false;
+        QString profName = QString::fromStdString(prof->name());
+        QString defaultName = QString("%1同学").arg(profName);
+        QString roleName = QInputDialog::getText(this, "角色命名",
+            QString("请输入%1的自定义角色名：").arg(profName),
+            QLineEdit::Normal, defaultName, &ok).trimmed();
+        if (!ok || roleName.isEmpty()) return;
+        createCharacter(profName, roleName);
+    }
+    for (int i = 0; i < party.size(); ++i) party[i].active = i < 3;
     phase = GamePhase::SchoolFirst;
     addTaskProgress("创建角色", "任意", 1);
     writeGame(currentSlot);
     showGamePage();
-    appendLog(QString("创建角色：%1（%2），进入第一学期排课。").arg(roleName).arg(prof));
+    appendLog("六名角色创建完成，默认前三名上阵，进入第一学期排课。");
 }
 
 void MainWindow::deleteSelectedSlot() {
@@ -756,6 +766,7 @@ void MainWindow::runSemester() {
     int totalProfit = weeklyProfit * 20;
     gold += totalProfit;
     for (auto& role : party) addExp(role, 60 * 20);
+    addTaskProgress("选课", "任意", 1);
     appendLog(QString("第%1学期结束：20周课表执行完毕，金币变化%2，本周剩余活力模板为%3。")
         .arg(semester).arg(totalProfit).arg(weeklyVigor));
     if (semester == 1) {
@@ -778,6 +789,7 @@ void MainWindow::winterRest() {
         role.maxHp += 25;
         role.hp = role.maxHp;
     }
+    addTaskProgress("寒假", "任意", 1);
     semester = 2;
     phase = GamePhase::SchoolSecond;
     appendLog("寒假休息：全体最大生命值提升25，进入第二学期排课。");
@@ -792,6 +804,7 @@ void MainWindow::winterWork() {
     }
     int gain = 420 + workGoldBonus * 8;
     gold += gain;
+    addTaskProgress("寒假", "任意", 1);
     semester = 2;
     phase = GamePhase::SchoolSecond;
     appendLog(QString("寒假打工：获得额外金币%1，进入第二学期排课。").arg(gain));
@@ -1060,38 +1073,86 @@ void MainWindow::buildDungeonLayer(int layer) {
 
 QVector<MainWindow::EnemyData> MainWindow::makeEnemyGroup(int layer, bool elite, bool boss) const {
     if (boss) {
-        return {{"终焉挂科龙", "首领", 7, 900, 900, 72, 45, 38, 36, 600, 120, false, true, true, 0, 0, 0, "终焉吐息：攻击全体并优先压低后排"}};
+        return {
+            {"教导处铁腕·左", "护卫", 7, 360, 360, 52, 0, 34, 28, 160, 35, false, false, false, 0, 0, 0, "铁壁护盾；防御号令：全体防+20%"},
+            {"教导处铁腕·右", "护卫", 7, 360, 360, 50, 0, 32, 30, 160, 35, false, false, false, 0, 0, 0, "净化之光；生命链接：分担左卫30%伤害"},
+            {"伪典校长·零", "最终BOSS", 7, 1200, 1200, 72, 64, 46, 44, 900, 160, false, true, true, 0, 0, 0, "校规禁制、成绩单改写、真理崩坏、终末的校钟、不灭的执念"}
+        };
     }
-    int hp = 70 + layer * 28;
-    int atk = 12 + layer * 7;
-    int def = 4 + layer * 3;
-    QVector<EnemyData> group = {
-        {QString("第%1层课堂游魂").arg(layer), "小怪", layer, hp, hp, atk, 0, def, def, 30 + layer * 12, 6 + layer * 3, false, false, false, 0, 0, 0, "粉笔投掷：普通攻击"},
-        {QString("第%1层迟到巡查员").arg(layer), "小怪", layer, hp + 20, hp + 20, atk + 4, 0, def + 2, def, 35 + layer * 12, 7 + layer * 3, false, false, true, 0, 0, 0, "越过前排攻击后排"},
-        {QString("第%1层作业怨念").arg(layer), "小怪", layer, hp - 10, hp - 10, atk, atk + 8, def, def + 3, 32 + layer * 12, 8 + layer * 3, false, false, false, 0, 0, 0, "精神压迫：法术伤害"}
-    };
     if (elite) {
-        group[0].name = QString("第%1层精英教导主任").arg(layer);
-        group[0].kind = "精英";
-        group[0].maxHp += 120;
-        group[0].hp = group[0].maxHp;
-        group[0].attack += 18;
-        group[0].defense += 8;
-        group[0].exp += 100;
-        group[0].demonCoin += 35;
-        group[0].elite = true;
-        group[0].skills = "纪律压制：高伤害并有概率眩晕";
+        switch (layer) {
+        case 1: return {{"折翼的百米王者", "精英·体育祭的怨念", 1, 260, 260, 36, 0, 16, 10, 160, 38, true, false, false, 0, 0, 0, "起跑冲刺、弯道超越、终点的执念"}};
+        case 2: return {{"扉页守护者", "精英·禁书的执念", 2, 300, 300, 18, 42, 18, 28, 210, 48, true, false, true, 0, 0, 0, "知识封印、真理扭曲、书页风暴"}};
+        case 3: return {{"无面舞者", "精英·镜中的真我", 3, 360, 360, 48, 35, 24, 24, 260, 60, true, false, false, 0, 0, 0, "模仿、无面无忆、破碎舞台"}};
+        case 4: return {{"畸变融合体", "精英·禁忌的合成物", 4, 470, 470, 55, 38, 30, 32, 330, 74, true, false, false, 0, 0, 0, "酸血喷溅、腐蚀光环、不稳定爆炸"}};
+        case 5: return {{"时计塔的囚徒", "精英·命运的反叛者", 5, 520, 520, 40, 58, 32, 36, 410, 90, true, false, true, 0, 0, 0, "命运抽牌、时间回溯、死神牌"}};
+        default: return {{"铁锈执念·陈暮", "精英·永恒的值日生", 6, 650, 650, 68, 0, 42, 34, 520, 110, true, false, false, 0, 0, 0, "积灰的扫帚、值日生点名、十年值夜的怨念、最后的坚守"}};
+        }
     }
-    return group;
+    switch (layer) {
+    case 1:
+        return {
+            {"懈怠的短跑者A", "小怪·前排", 1, 120, 120, 24, 0, 10, 8, 45, 8, false, false, false, 0, 0, 0, "冲刺突袭：单体1.5倍伤害，降攻20%"},
+            {"懈怠的短跑者B", "小怪·后排", 1, 95, 95, 22, 0, 8, 8, 40, 8, false, false, false, 0, 0, 0, "冲刺突袭：单体1.5倍伤害，降攻20%"},
+            {"驼背的铅球手", "小怪·后排", 1, 145, 145, 28, 0, 14, 8, 55, 10, false, false, false, 0, 0, 0, "蓄力投掷：防御后全体大量伤害"},
+            {"体操幽灵", "辅助·后排", 1, 80, 80, 0, 0, 6, 12, 35, 8, false, false, false, 0, 0, 0, "鼓励：给攻击最高队友攻击+20%"}
+        };
+    case 2:
+        return {
+            {"目录魔像", "小怪·前排", 2, 190, 190, 30, 0, 28, 12, 75, 14, false, false, false, 0, 0, 0, "检索锁定：降低目标防御30%"},
+            {"涂鸦书灵A", "小怪·后排", 2, 120, 120, 0, 34, 12, 20, 65, 14, false, false, false, 0, 0, 0, "逗号飞弹：远程单体，降攻20%"},
+            {"涂鸦书灵B", "小怪·后排", 2, 120, 120, 0, 34, 12, 20, 65, 14, false, false, false, 0, 0, 0, "句号禁锢：禁止目标行动1回合"},
+            {"禁书管理员", "辅助·后排", 2, 140, 140, 0, 20, 10, 26, 70, 16, false, false, false, 0, 0, 0, "禁书光环：随机沉默；强制归位：清负面"}
+        };
+    case 3:
+        return {
+            {"微笑小丑", "小怪·前排", 3, 220, 220, 38, 0, 24, 16, 90, 18, false, false, false, 0, 0, 0, "来笑一个：嘲讽并提高防御"},
+            {"镜面侍从A", "小怪·前排", 3, 180, 180, 42, 20, 18, 18, 88, 18, false, false, false, 0, 0, 0, "模仿：复制我方攻击最高者攻击力"},
+            {"镜面侍从B", "小怪·后排", 3, 160, 160, 40, 20, 16, 18, 88, 18, false, false, false, 0, 0, 0, "远程模仿攻击"},
+            {"悲情女主角", "辅助·后排", 3, 170, 170, 0, 40, 14, 24, 95, 20, false, false, false, 0, 0, 0, "治愈泪水、脆弱呢喃"}
+        };
+    case 4:
+        return {
+            {"酸液史莱姆A", "小怪·前排", 4, 250, 250, 0, 48, 22, 28, 115, 24, false, false, false, 0, 0, 0, "酸液喷射：降低防御25%，可叠加"},
+            {"酸液史莱姆B", "小怪·前排", 4, 240, 240, 0, 48, 22, 28, 115, 24, false, false, false, 0, 0, 0, "酸液喷射：优先血量最低前排"},
+            {"爆炸烧杯怪", "小怪·后排", 4, 170, 170, 0, 55, 12, 22, 125, 26, false, false, true, 0, 0, 0, "不稳定化合物：死亡自爆并灼烧"},
+            {"剧毒试管精", "辅助·后排", 4, 180, 180, 0, 45, 14, 25, 125, 26, false, false, true, 0, 0, 0, "毒性扩散、腐蚀强化"}
+        };
+    case 5:
+        return {
+            {"塔罗士兵A", "小怪·前排", 5, 300, 300, 56, 0, 30, 28, 150, 32, false, false, false, 0, 0, 0, "每回合抽牌：力量/倒吊人/高塔"},
+            {"塔罗士兵B", "小怪·后排", 5, 260, 260, 58, 0, 26, 28, 150, 32, false, false, true, 0, 0, 0, "抽牌并优先攻击血量最低者"},
+            {"时针幽灵", "小怪·后排", 5, 240, 240, 0, 62, 20, 34, 165, 36, false, false, true, 0, 0, 0, "时间停滞、时之枷锁"},
+            {"命运轮盘", "环境陷阱", 5, 180, 180, 0, 45, 20, 30, 120, 28, false, false, false, 0, 0, 0, "每4回合：全体攻-20%/防-20%/清除状态"}
+        };
+    default:
+        return {
+            {"教导处铁腕·左", "小怪·前排", 6, 390, 390, 64, 0, 42, 34, 210, 45, false, false, false, 0, 0, 0, "铁壁护盾；防御号令"},
+            {"教导处铁腕·右", "小怪·前排", 6, 380, 380, 62, 0, 40, 36, 210, 45, false, false, false, 0, 0, 0, "净化之光；生命链接"},
+            {"纪律巡查使A", "小怪·后排", 6, 280, 280, 68, 0, 30, 32, 220, 48, false, false, true, 0, 0, 0, "记过处分：降低攻击15%，可叠加"},
+            {"纪律巡查使B", "小怪·后排", 6, 280, 280, 68, 0, 30, 32, 220, 48, false, false, true, 0, 0, 0, "记过处分：优先血量最低者"}
+        };
+    }
 }
 
 QVector<MainWindow::ItemData> MainWindow::makeLayerEquipments(int layer) const {
-    int base = 10 + layer * 5;
+    struct EquipRow { const char* a; const char* b; const char* c; const char* d; int bonus; const char* scene; };
+    static const EquipRow rows[] = {
+        {"生锈的哑铃", "涂鸦笔记本", "护膝护具", "运动头带", 5, "废弃体育馆"},
+        {"书脊铁尺", "灵摆书签", "硬壳封面盾", "羊皮纸护符", 10, "倒悬图书馆"},
+        {"幕布匕首", "提词员魔杖", "小丑面具", "丝绒披肩", 15, "镜面戏剧社"},
+        {"腐蚀钢爪", "试剂管法杖", "防化服内衬", "防毒面罩", 20, "失序化学实验室"},
+        {"命运之刃", "占星术士杖", "星轨披风", "命运护符", 28, "占卜社旧址"},
+        {"教导戒尺", "校规法典", "铁腕护臂", "净化领结", 35, "校长室前厅"}
+    };
+    int idx = std::max(1, std::min(6, layer)) - 1;
+    int b = rows[idx].bonus;
+    int price = 18 + layer * 8;
     return {
-        {QString("第%1层学生木剑").arg(layer), ItemType::Equipment, "装备", 0, 18 + layer * 4, "物攻装备，提升物理攻击。", 0, 0, 0, base, 0, 0, 0, "物攻", false},
-        {QString("第%1层魔法粉笔").arg(layer), ItemType::Equipment, "装备", 0, 18 + layer * 4, "法攻装备，提升法术攻击。", 0, 0, 0, 0, base, 0, 0, "法攻", false},
-        {QString("第%1层纪律护甲").arg(layer), ItemType::Equipment, "装备", 0, 18 + layer * 4, "物防装备，提升物理防御。", 0, 0, 0, 0, 0, base, 0, "物防", false},
-        {QString("第%1层实验护符").arg(layer), ItemType::Equipment, "装备", 0, 18 + layer * 4, "法抗装备，提升法术抗性。", 0, 0, 0, 0, 0, 0, base, "法抗", false}
+        {rows[idx].a, ItemType::Equipment, "装备", 0, price, QString("%1物攻装备，属性+%2%。").arg(rows[idx].scene).arg(b), 0, 0, 0, b, 0, 0, 0, "物攻", false},
+        {rows[idx].b, ItemType::Equipment, "装备", 0, price, QString("%1法攻装备，属性+%2%。").arg(rows[idx].scene).arg(b), 0, 0, 0, 0, b, 0, 0, "法攻", false},
+        {rows[idx].c, ItemType::Equipment, "装备", 0, price, QString("%1物防装备，属性+%2%。").arg(rows[idx].scene).arg(b), 0, 0, 0, 0, 0, b, 0, "物防", false},
+        {rows[idx].d, ItemType::Equipment, "装备", 0, price, QString("%1法抗装备，属性+%2%。").arg(rows[idx].scene).arg(b), 0, 0, 0, 0, 0, 0, b, "法抗", false}
     };
 }
 
@@ -1135,20 +1196,21 @@ void MainWindow::startBattle(const QVector<EnemyData>& enemies, bool elite, bool
     }
     inBattle = true;
     QString kind = boss ? "最终BOSS" : (elite ? "精英战斗" : "普通战斗");
+    addTaskProgress("开战", "任意", 1);
     appendLog(QString("进入%1：%2。平均等级决定先后手，等级相同我方先手。").arg(kind).arg(battleEnemies.first().name));
 }
 
 void MainWindow::fightOneRound() {
     if (!inBattle) return;
     double playerAvg = 0;
-    for (const auto& r : party) playerAvg += r.level;
-    playerAvg = party.isEmpty() ? 0 : playerAvg / party.size();
+    for (const auto& r : party) if (r.active) playerAvg += r.level;
+    playerAvg = activeRoleCount() == 0 ? 0 : playerAvg / activeRoleCount();
     double enemyAvg = dungeonLayer + (battleEnemies.first().elite ? 1.5 : 0) + (battleEnemies.first().boss ? 4 : 0);
     bool playerFirst = playerAvg >= enemyAvg;
 
     auto playerTurn = [this]() {
         for (auto& role : party) {
-            if (role.hp <= 0) continue;
+            if (!role.active || role.hp <= 0) continue;
             if (role.battleStun > 0) {
                 role.battleStun--;
                 appendLog(QString("%1 处于眩晕，无法行动。").arg(role.name));
@@ -1197,7 +1259,7 @@ void MainWindow::enemyTurn() {
         }
         if (enemy.backlineAttack && party.size() > 1) {
             for (int i = party.size() - 1; i >= 0; --i) {
-                if (party[i].hp > 0) {
+                if (party[i].active && party[i].hp > 0) {
                     target = i;
                     break;
                 }
@@ -1232,8 +1294,9 @@ void MainWindow::endBattleIfNeeded() {
         int dropCount = elite ? 3 : 3;
         for (int i = 0; i < dropCount; ++i) addItem(equips[QRandomGenerator::global()->bounded(equips.size())]);
         addTaskProgress("战斗", "任意", 1);
+        addTaskProgress("战斗胜利", "任意", 1);
         if (boss) {
-            addTaskProgress("最终BOSS", "终焉挂科龙", 1);
+            addTaskProgress("最终BOSS", "伪典校长·零", 1);
             phase = GamePhase::Ending;
             QMessageBox::information(this, "通关结局", "打破诅咒，所有角色逃离轮回。");
         } else if (elite) {
@@ -1326,6 +1389,28 @@ void MainWindow::setFormationTwoFront() {
     refreshAll();
 }
 
+void MainWindow::toggleSelectedRoleActive() {
+    int row = characterList->currentRow();
+    if (row < 0 || row >= party.size()) return;
+    if (party[row].active) {
+        if (activeRoleCount() <= 1) {
+            QMessageBox::warning(this, "至少一人上阵", "队伍至少需要保留1名上阵角色。");
+            return;
+        }
+        party[row].active = false;
+    } else {
+        if (activeRoleCount() >= 3) {
+            QMessageBox::warning(this, "上阵人数已满", "最多只能上阵3名角色。");
+            return;
+        }
+        party[row].active = true;
+    }
+    formationChanged = true;
+    addTaskProgress("编队", "任意", 1);
+    refreshAll();
+    writeGame(currentSlot);
+}
+
 void MainWindow::moveRoleUp() {
     int row = characterList->currentRow();
     if (row > 0 && row < party.size()) {
@@ -1348,7 +1433,13 @@ void MainWindow::moveRoleDown() {
 
 int MainWindow::alivePlayerCount() const {
     int count = 0;
-    for (const auto& role : party) if (role.hp > 0) count++;
+    for (const auto& role : party) if (role.active && role.hp > 0) count++;
+    return count;
+}
+
+int MainWindow::activeRoleCount() const {
+    int count = 0;
+    for (const auto& role : party) if (role.active) count++;
     return count;
 }
 
@@ -1364,7 +1455,7 @@ int MainWindow::firstAliveEnemy() const {
 }
 
 int MainWindow::firstAlivePlayer() const {
-    for (int i = 0; i < party.size(); ++i) if (party[i].hp > 0) return i;
+    for (int i = 0; i < party.size(); ++i) if (party[i].active && party[i].hp > 0) return i;
     return -1;
 }
 
@@ -1410,6 +1501,12 @@ QString MainWindow::roleText(const CharacterData& role) const {
         .arg(role.physicalAttack).arg(role.magicAttack).arg(role.physicalDefense).arg(role.magicResistance).arg(role.vigor);
 }
 
+QString MainWindow::activeText(const CharacterData& role, int visibleIndex) const {
+    if (!role.active) return "未上阵";
+    if (formationType == 1) return visibleIndex == 0 ? "上阵·前排" : "上阵·后排";
+    return visibleIndex < 2 ? "上阵·前排" : "上阵·后排";
+}
+
 QString MainWindow::skillsText(const CharacterData& role) const {
     auto* prof = professionByName(role.profession);
     if (!prof) return "无";
@@ -1436,7 +1533,7 @@ MainWindow::ItemData MainWindow::itemByName(const QString& name) const {
     for (int layer = 1; layer <= 7; ++layer) {
         for (const auto& item : makeLayerEquipments(layer)) if (item.name == name) return item;
     }
-    if (name == "第一层学生木剑") return makeLayerEquipments(1).first();
+    if (name == "第一层学生木剑" || name == "生锈的哑铃") return makeLayerEquipments(1).first();
     return {"未知物品", ItemType::Food, "未知", 0, 0, "存档中存在但配置表未找到的物品。", 0, 0, 0, 0, 0, 0, 0, "", false};
 }
 
@@ -1470,7 +1567,7 @@ QString MainWindow::serializeCharacters() const {
             role.name, role.profession, QString::number(role.level), QString::number(role.exp), QString::number(role.expNeed),
             QString::number(role.hp), QString::number(role.maxHp), QString::number(role.mp), QString::number(role.maxMp),
             QString::number(role.vigor), QString::number(role.physicalAttack), QString::number(role.magicAttack),
-            QString::number(role.physicalDefense), QString::number(role.magicResistance), equipRows.join(",")
+            QString::number(role.physicalDefense), QString::number(role.magicResistance), QString::number(role.active ? 1 : 0), equipRows.join(",")
         }.join("|");
     }
     return rows.join("\n");
@@ -1496,7 +1593,15 @@ void MainWindow::deserializeCharacters(const QString& text) {
         role.magicAttack = p.value(11).toInt();
         role.physicalDefense = p.value(12).toInt();
         role.magicResistance = p.value(13).toInt();
-        for (const QString& equip : p.value(14).split(",", Qt::SkipEmptyParts)) {
+        QString equipText;
+        if (p.size() >= 16) {
+            role.active = p.value(14).toInt() != 0;
+            equipText = p.value(15);
+        } else {
+            role.active = party.size() < 3;
+            equipText = p.value(14);
+        }
+        for (const QString& equip : equipText.split(",", Qt::SkipEmptyParts)) {
             QStringList kv = equip.split("=");
             if (kv.size() == 2) role.equipment[kv[0]] = kv[1];
         }
