@@ -1,0 +1,40 @@
+<RCC>
+    <qresource prefix="/assets">
+        <file>assets/scenes/gym.jpg</file>
+        <file>assets/scenes/library.jpg</file>
+        <file>assets/scenes/classroom_dusk.jpg</file>
+        <file>assets/scenes/abandoned_classroom.jpg</file>
+        <file>assets/scenes/equipment_room.jpg</file>
+        <file>assets/scenes/corridor.jpg</file>
+        <file>assets/scenes/playground.jpg</file>
+        <file>assets/sprites/student.png</file>
+        <file>assets/sprites/ice_mage.png</file>
+        <file>assets/sprites/paladin.png</file>
+        <file>assets/sprites/blesser.png</file>
+        <file>assets/sprites/blood_warrior.png</file>
+        <file>assets/sprites/magician.png</file>
+        <file>assets/sprites/gym_sprinter.png</file>
+        <file>assets/sprites/gym_shot_putter.png</file>
+        <file>assets/sprites/gym_gymnast.png</file>
+        <file>assets/sprites/library_scribble_spirit.png</file>
+        <file>assets/sprites/library_catalog_golem.png</file>
+        <file>assets/sprites/library_banned_librarian.png</file>
+        <file>assets/sprites/theater_clown.png</file>
+        <file>assets/sprites/theater_tragedy.png</file>
+        <file>assets/sprites/theater_mirror_attendant.png</file>
+        <file>assets/sprites/lab_acid_slime.png</file>
+        <file>assets/sprites/lab_beaker.png</file>
+        <file>assets/sprites/lab_tube.png</file>
+        <file>assets/sprites/divination_tarot.png</file>
+        <file>assets/sprites/divination_clock_ghost.png</file>
+        <file>assets/sprites/office_iron_hand.png</file>
+        <file>assets/sprites/office_discipline_inspector.png</file>
+        <file>assets/sprites/elite_book_guardian.png</file>
+        <file>assets/sprites/elite_winged_runner.png</file>
+        <file>assets/sprites/elite_faceless_dancer.png</file>
+        <file>assets/sprites/elite_clock_prisoner.png</file>
+        <file>assets/sprites/elite_mutant.png</file>
+        <file>assets/sprites/elite_rust_regret.png</file>
+        <file>assets/sprites/boss_principal.png</file>
+    </qresource>
+</RCC>
