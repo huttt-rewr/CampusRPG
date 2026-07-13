@@ -1,76 +1,53 @@
+// GameManager.h
+// 游戏管理类定义：组织菜单、存档读写、战斗、商店、任务和背包流程。
 #ifndef GAMEMANAGER_H
 #define GAMEMANAGER_H
 
-#include <memory>
-#include <vector>
-#include <string>
 #include "Character.h"
 #include "Enemy.h"
-#include "Task.h"
 #include "Shop.h"
-#include "Location.h"
+#include "Task.h"
+#include <map>
+#include <memory>
+#include <string>
+#include <vector>
 
 class GameManager {
+private:
+    Character player_;
+    bool hasPlayer_;
+    Shop shop_;
+    std::vector<Task> tasks_;
+    std::vector<std::unique_ptr<Enemy>> enemyTemplates_;
+    std::map<std::string, std::shared_ptr<Item>> itemFactory_;
+    std::string saveFile_;
+
+    void initializeData();
+    void startupMenu();
+    void mainMenu();
+    void characterMenu();
+    void inventoryMenu();
+    void shopMenu();
+    void taskMenu();
+    void battleMenu();
+    void showCourseDesignNotes() const;
+
+    int readInt(const std::string& prompt, int minValue, int maxValue) const;
+    std::string readLine(const std::string& prompt) const;
+    void pause() const;
+    void checkTasksAfterInventoryChange();
+    void checkTasksAfterEnemyDefeated(const std::string& enemyName);
+    void saveGame() const;
+    bool loadGame();
+    bool parseSaveFile(std::istream& in);
+    std::shared_ptr<Item> createItemByName(const std::string& name) const;
+    void useItemFromInventory(bool inBattle);
+    void playerAttackEnemy(Enemy& enemy) const;
+    bool fightEnemy(std::unique_ptr<Enemy> enemy);
+
 public:
-    std::unique_ptr<Character> player;
-    std::vector<std::unique_ptr<Enemy>> enemies;
-    std::vector<std::unique_ptr<Task>> tasks;
-    std::unique_ptr<Shop> shop;
-    std::unique_ptr<GameMap> map;
-    std::string battleLog;
-    std::string messageLog;
-    std::vector<std::shared_ptr<Item>> warehouse;
-    int bankGold;
-    int currentSaveSlot;
-    int battlesSinceRest;
-    int mainlineStage;
-    bool restPointAvailable;
-
     GameManager();
-    ~GameManager();
-
-    void initPlayer(const std::string& name);
-    void initEnemies();
-    void initTasks();
-    void initShop();
-    void resetWorldForNewPlayer(const std::string& name);
-    bool isTown() const;
-    std::string currentLocationType() const;
-    std::string currentTownName() const;
-    int currentTownMinLevel() const;
-    int currentTownMaxLevel() const;
-    std::string mainlineInfo() const;
-    std::string formationInfo() const;
-    std::string addBattleRewardItem();
-    void recordBattleFinished();
-    std::string returnToTown();
-
-    // Map
-    std::string moveTo(int locIndex);
-    std::string rest();
-    int checkEncounter();
-
-    // Battle
-    bool doBattle(int enemyIndex);
-
-    // Tasks
-    void checkTaskProgress();
-
-    // Storage and bank
-    std::string depositItem(int index);
-    std::string withdrawItem(int index);
-    std::string depositGold(int amount);
-    std::string withdrawGold(int amount);
-    std::string reinforceWithScroll(int inventoryIndex);
-
-    // Save slots
-    static int maxSaveSlots();
-    static std::string saveDirPath();
-    bool saveExists(int slot) const;
-    std::string saveSlotName(int slot) const;
-    std::string saveGame(int slot);
-    std::string loadGame(int slot);
-    std::string deleteSave(int slot);
+    void run();
 };
 
 #endif

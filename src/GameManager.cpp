@@ -1,444 +1,492 @@
+// GameManager.cpp
+// 游戏管理类实现：负责多级菜单、合法输入、文本存档、任务检查、商店和战斗流程。
 #include "GameManager.h"
+#include "Equipment.h"
 #include "Food.h"
 #include "Medicine.h"
-#include "Equipment.h"
-#include "SpecialItem.h"
-#include <QCoreApplication>
-#include <QDir>
-#include <QFile>
-#include <QSettings>
-#include <QStringList>
-#include <sstream>
 #include <cstdlib>
 #include <ctime>
-#include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <limits>
+#include <sstream>
+
+namespace {
+
+std::vector<std::string> split(const std::string& text, char delimiter) {
+    std::vector<std::string> parts;
+    std::stringstream ss(text);
+    std::string part;
+    while (std::getline(ss, part, delimiter)) parts.push_back(part);
+    return parts;
+}
+
+TaskStatus statusFromInt(int value) {
+    switch (value) {
+        case 0: return TaskStatus::NotAccepted;
+        case 1: return TaskStatus::Accepted;
+        case 2: return TaskStatus::Completed;
+        case 3: return TaskStatus::Rewarded;
+        default: return TaskStatus::NotAccepted;
+    }
+}
+
+}  // namespace
 
 GameManager::GameManager()
-    : bankGold(0), currentSaveSlot(-1), battlesSinceRest(0),
-      mainlineStage(1), restPointAvailable(false) {
-    srand((unsigned)time(nullptr));
-    map = std::make_unique<GameMap>();
-    initEnemies();
-    initTasks();
-    initShop();
+    : player_(), hasPlayer_(false), saveFile_("campus_rpg_save.txt") {
+    std::srand(static_cast<unsigned int>(std::time(nullptr)));
+    initializeData();
 }
 
-GameManager::~GameManager() = default;
+void GameManager::initializeData() {
+    shop_.addGoods(std::make_shared<Food>("校园食堂盒饭", 30, "食堂阿姨手不抖的一餐", 30));
+    shop_.addGoods(std::make_shared<Medicine>("校医院退烧药", 60, "校医院常备药，战斗中也能救急", 70));
+    shop_.addGoods(std::make_shared<Equipment>("图书馆占座笔", 120, "传说能抢到第一排座位的笔", 10, 4));
 
-void GameManager::initPlayer(const std::string& name) {
-    player = std::make_unique<Character>(name);
+    itemFactory_ = shop_.buildItemFactory();
+
+    tasks_.push_back(Task(1, "赶走占座狗", "帮同学夺回图书馆座位。",
+                          TaskConditionType::DefeatEnemy, "校园占座狗", 2,
+                          80, 50, "校园食堂盒饭"));
+    tasks_.push_back(Task(2, "收集应急药", "为班级药箱准备校医院退烧药。",
+                          TaskConditionType::CollectItem, "校医院退烧药", 1,
+                          60, 40, ""));
+    tasks_.push_back(Task(3, "直面挂科传说", "击败期末挂科神龙，证明复习有效。",
+                          TaskConditionType::DefeatEnemy, "期末挂科神龙", 1,
+                          250, 200, "图书馆占座笔"));
+
+    enemyTemplates_.push_back(std::make_unique<NormalEnemy>());
+    enemyTemplates_.push_back(std::make_unique<EliteEnemy>());
+    enemyTemplates_.push_back(std::make_unique<BossEnemy>());
 }
 
-void GameManager::resetWorldForNewPlayer(const std::string& name) {
-    player = std::make_unique<Character>(name);
-    warehouse.clear();
-    bankGold = 0;
-    battlesSinceRest = 0;
-    mainlineStage = 1;
-    restPointAvailable = false;
-    map = std::make_unique<GameMap>();
-    enemies.clear();
-    tasks.clear();
-    initEnemies();
-    initTasks();
-    initShop();
+void GameManager::run() {
+    startupMenu();
+    if (hasPlayer_) mainMenu();
 }
 
-void GameManager::initEnemies() {
-    enemies.push_back(std::make_unique<NormalMonster>(
-        "史莱姆", 30, 5, 2, 20, 10));
-    enemies.push_back(std::make_unique<NormalMonster>(
-        "哥布林", 50, 8, 3, 35, 20));
-    enemies.push_back(std::make_unique<EliteMonster>(
-        "暗影骑士", 80, 15, 8, 60, 40, 0.3, 5));
-    enemies.push_back(std::make_unique<EliteMonster>(
-        "巨石守卫", 100, 12, 12, 70, 50, 0.2, 10));
-    enemies.push_back(std::make_unique<Boss>(
-        "黑龙王", 200, 20, 10, 200, 150, "龙息术", 35));
-}
-
-void GameManager::initTasks() {
-    tasks.push_back(std::make_unique<Task>(
-        "初出茅庐", "击败史莱姆证明你的实力!",
-        "击败3只史莱姆", 50, 30, 3));
-    tasks.push_back(std::make_unique<Task>(
-        "哥布林杀手", "击败哥布林保护村庄!",
-        "击败5只哥布林", 100, 60, 5));
-    tasks.push_back(std::make_unique<Task>(
-        "屠龙勇士", "击败黑龙王拯救校园!",
-        "击败黑龙王", 500, 300, 1));
-}
-
-void GameManager::initShop() {
-    shop = std::make_unique<Shop>("校园商店");
-    shop->addItem(createSpecialItemById("战斗经验卡"));
-    shop->addItem(createSpecialItemById("武器强化卷"));
-    shop->addItem(createSpecialItemById("铠甲强化卷"));
-    shop->addItem(createSpecialItemById("回血药"));
-    shop->addItem(createSpecialItemById("回蓝药"));
-    shop->addItem(createSpecialItemById("狂暴药水"));
-    shop->addItem(createSpecialItemById("虚弱药水"));
-    shop->addItem(createSpecialItemById("疲惫药水"));
-}
-
-bool GameManager::isTown() const {
-    if (!map) return false;
-    const auto& loc = map->locations[map->currentLocation];
-    return loc.hasShop || loc.hasRest;
-}
-
-std::string GameManager::currentLocationType() const {
-    return isTown() ? "城镇节点" : "野外节点";
-}
-
-std::string GameManager::currentTownName() const {
-    if (!map) return "起源之地";
-    int idx = map->currentLocation;
-    if (idx <= 3) return "起源之地";
-    if (idx <= 5) return "黄昏边界";
-    if (idx <= 7) return "芒星镇";
-    if (idx == 8) return "月辉城";
-    return "圣都";
-}
-
-int GameManager::currentTownMinLevel() const {
-    std::string town = currentTownName();
-    if (town == "起源之地") return 0;
-    if (town == "黄昏边界") return 10;
-    if (town == "芒星镇") return 15;
-    if (town == "月辉城") return 20;
-    return 25;
-}
-
-int GameManager::currentTownMaxLevel() const {
-    std::string town = currentTownName();
-    if (town == "起源之地") return 10;
-    if (town == "黄昏边界") return 15;
-    if (town == "芒星镇") return 20;
-    if (town == "月辉城") return 25;
-    return 30;
-}
-
-std::string GameManager::mainlineInfo() const {
-    static const char* stages[] = {
-        "起源之地 -> 黄昏边界",
-        "黄昏边界 -> 芒星镇",
-        "芒星镇 -> 月辉城",
-        "月辉城 -> 圣都",
-        "圣都 -> 进军次元裂隙"
-    };
-    int idx = std::max(1, std::min(mainlineStage, 5)) - 1;
-    return std::string("主线阶段 ") + std::to_string(mainlineStage)
-        + "：" + stages[idx] + "。当前为框架进度，后续可扩展为关卡推进。";
-}
-
-std::string GameManager::formationInfo() const {
-    return "编队框架：前排1人，后排2人。当前版本以主角单人战斗承载核心流程，后续可扩展为3v3技能选人与目标选择。";
-}
-
-std::string GameManager::addBattleRewardItem() {
-    if (!player) return "";
-    if (rand() % 100 >= 35) return "本次战斗没有掉落物品。";
-    static const char* drops[] = {"回血药", "回蓝药", "战斗经验卡"};
-    auto item = createSpecialItemById(drops[rand() % 3]);
-    if (!item) return "";
-    std::string name = item->getName();
-    if (!player->addItem(item)) {
-        return "战斗掉落了 " + name + "，但背包已满，无法拾取。";
-    }
-    return "战斗掉落：" + name + " 已自动放入背包。";
-}
-
-void GameManager::recordBattleFinished() {
-    ++battlesSinceRest;
-    if (battlesSinceRest >= 3) {
-        restPointAvailable = true;
-        battlesSinceRest = 0;
-    }
-}
-
-std::string GameManager::returnToTown() {
-    if (!map) return "地图未初始化。";
-    if (!restPointAvailable && !isTown()) {
-        return "尚未发现休息点。每完成3次战斗后可通过休息点回城。";
-    }
-    map->currentLocation = 3; // 食堂：当前版本的城镇服务中心
-    restPointAvailable = false;
-    if (player) {
-        player->heal(player->getMaxHp());
-        player->restoreMana(player->getMaxMp());
-    }
-    return "已通过休息点返回城镇，并恢复生命值与蓝量。";
-}
-
-bool GameManager::doBattle(int enemyIndex) {
-    if (enemyIndex < 0 || enemyIndex >= (int)enemies.size()) return false;
-    auto& enemy = enemies[enemyIndex];
-    battleLog.clear();
-
-    while (player->isAlive() && enemy->isAlive()) {
-        // Player turn
-        int pdmg = player->dealDamage();
-        enemy->takeDamage(pdmg);
-        std::ostringstream oss;
-        oss << player->getName() << " 造成 " << pdmg << " 伤害 | ";
-        // Enemy HP bar
-        int ehpPct = enemy->getHp() * 100 / enemy->getMaxHp();
-        oss << enemy->getName() << " HP: " << enemy->getHp() << "/" << enemy->getMaxHp()
-            << " (" << ehpPct << "%)";
-        battleLog += oss.str() + "\n";
-
-        if (!enemy->isAlive()) break;
-
-        // Enemy turn
-        int edmg = enemy->attackPlayer();
-        if (edmg < 0) {
-            battleLog += enemy->getName() + " 逃跑了!\n";
-            break;
+void GameManager::startupMenu() {
+    while (true) {
+        std::cout << "\n========== 校园RPG冒险游戏系统 ==========\n";
+        std::cout << "1. 新建角色\n";
+        std::cout << "2. 读取存档\n";
+        std::cout << "0. 退出\n";
+        std::cout << "========================================\n";
+        int choice = readInt("请选择：", 0, 2);
+        if (choice == 0) return;
+        if (choice == 1) {
+            std::string name = readLine("请输入角色名称：");
+            player_ = Character(name);
+            hasPlayer_ = true;
+            saveGame();
+            std::cout << "新建角色成功，初始金币100，生命已回满。\n";
+            return;
         }
-        // Check for Boss skill
-        if (auto* boss = dynamic_cast<Boss*>(enemy.get())) {
-            if (edmg > enemy->getAttack() + 10) {
-                battleLog += boss->getName() + " 使用 " + boss->getSkillName() + "!\n";
+        if (choice == 2) {
+            if (loadGame()) {
+                std::cout << "读档成功，欢迎回来，" << player_.getName() << "！\n";
+                return;
             }
-            boss->checkPhase();
-            if (boss->getPhase() == 2) {
-                battleLog += "黑龙王进入第二阶段!\n";
+            std::cout << "存档不存在或损坏，请新建角色。\n";
+        }
+    }
+}
+
+void GameManager::mainMenu() {
+    while (true) {
+        saveGame();
+        std::cout << "\n================ 主菜单 ================\n";
+        std::cout << "1. 角色管理\n";
+        std::cout << "2. 背包管理\n";
+        std::cout << "3. 商店系统\n";
+        std::cout << "4. 任务系统\n";
+        std::cout << "5. 战斗系统\n";
+        std::cout << "6. 课程设计说明\n";
+        std::cout << "0. 保存并退出\n";
+        std::cout << "========================================\n";
+        int choice = readInt("请选择：", 0, 6);
+        if (choice == 0) {
+            saveGame();
+            std::cout << "已自动保存，欢迎下次继续冒险。\n";
+            return;
+        }
+        if (choice == 1) characterMenu();
+        else if (choice == 2) inventoryMenu();
+        else if (choice == 3) shopMenu();
+        else if (choice == 4) taskMenu();
+        else if (choice == 5) battleMenu();
+        else if (choice == 6) showCourseDesignNotes();
+    }
+}
+
+void GameManager::characterMenu() {
+    while (true) {
+        std::cout << "\n-------------- 角色管理 --------------\n";
+        std::cout << "1. 查看角色完整信息\n";
+        std::cout << "2. 手动保存当前数据\n";
+        std::cout << "0. 返回主菜单\n";
+        int choice = readInt("请选择：", 0, 2);
+        if (choice == 0) return;
+        if (choice == 1) std::cout << player_.info();
+        if (choice == 2) {
+            saveGame();
+            std::cout << "保存成功。\n";
+        }
+        pause();
+    }
+}
+
+void GameManager::inventoryMenu() {
+    while (true) {
+        checkTasksAfterInventoryChange();
+        std::cout << "\n-------------- 背包管理 --------------\n";
+        std::cout << "1. 查看背包\n";
+        std::cout << "2. 使用物品\n";
+        std::cout << "3. 删除物品\n";
+        std::cout << "0. 返回主菜单\n";
+        int choice = readInt("请选择：", 0, 3);
+        if (choice == 0) return;
+        if (choice == 1) {
+            const auto& inv = player_.getInventory();
+            std::cout << "背包容量：" << inv.size() << "/20\n";
+            if (inv.empty()) std::cout << "背包为空。\n";
+            for (int i = 0; i < static_cast<int>(inv.size()); ++i) {
+                std::cout << i + 1 << ". " << inv[i]->getName()
+                          << " | 类型：" << inv[i]->getType()
+                          << " | 价格：" << inv[i]->getPrice()
+                          << " | 描述：" << inv[i]->getDescription()
+                          << " | 效果：" << inv[i]->effectText() << "\n";
+            }
+            pause();
+        } else if (choice == 2) {
+            useItemFromInventory(false);
+            checkTasksAfterInventoryChange();
+            saveGame();
+        } else if (choice == 3) {
+            if (player_.inventorySize() == 0) {
+                std::cout << "背包为空，无法删除。\n";
+            } else {
+                int index = readInt("请输入要删除的物品编号：", 1, player_.inventorySize()) - 1;
+                auto item = player_.removeItem(index);
+                std::cout << "已删除物品：" << item->getName() << "。\n";
+                checkTasksAfterInventoryChange();
+                saveGame();
             }
         }
-        // Check for Elite crit
-        if (auto* elite = dynamic_cast<EliteMonster*>(enemy.get())) {
-            if (elite->isCrit()) {
-                battleLog += "暴击! ";
-            }
-        }
-        player->takeDamage(edmg);
-        battleLog += enemy->getName() + " 造成 " + std::to_string(edmg) + " 伤害 | ";
-        battleLog += player->getName() + " HP: " + std::to_string(player->getHp())
-                  + "/" + std::to_string(player->getMaxHp()) + "\n";
     }
+}
 
-    if (player->isAlive()) {
-        int er = enemy->getExpReward();
-        int gr = enemy->getGoldReward();
-        std::string expMsg = player->gainExp(er);
-        player->addGold(gr);
-        battleLog += "\n=== 胜利! ===\n";
-        battleLog += expMsg + " | +" + std::to_string(gr) + "G\n";
-
-        // Update task progress
-        for (auto& t : tasks) {
-            if (t->isAccepted() && !t->isCompleted()) {
-                if (t->getName().find("初出茅庐") != std::string::npos &&
-                    enemy->getName().find("史莱姆") != std::string::npos) {
-                    t->addProgress(1);
+void GameManager::shopMenu() {
+    while (true) {
+        std::cout << "\n-------------- 商店系统 --------------\n";
+        std::cout << "当前金币：" << player_.getGold() << "\n";
+        std::cout << "1. 查看商品列表\n";
+        std::cout << "2. 购买商品\n";
+        std::cout << "3. 出售背包物品\n";
+        std::cout << "0. 返回主菜单\n";
+        int choice = readInt("请选择：", 0, 3);
+        if (choice == 0) return;
+        if (choice == 1) {
+            shop_.showGoods();
+            pause();
+        } else if (choice == 2) {
+            shop_.showGoods();
+            int index = readInt("请输入要购买的商品编号：", 1, static_cast<int>(shop_.getGoods().size())) - 1;
+            shop_.buy(player_, index);
+            checkTasksAfterInventoryChange();
+            saveGame();
+        } else if (choice == 3) {
+            if (player_.inventorySize() == 0) {
+                std::cout << "背包为空，无法出售。\n";
+            } else {
+                const auto& inv = player_.getInventory();
+                for (int i = 0; i < static_cast<int>(inv.size()); ++i) {
+                    std::cout << i + 1 << ". " << inv[i]->getName()
+                              << " | 原价：" << inv[i]->getPrice()
+                              << " | 出售价：" << inv[i]->getPrice() / 2 << "\n";
                 }
-                if (t->getName().find("哥布林杀手") != std::string::npos &&
-                    enemy->getName().find("哥布林") != std::string::npos) {
-                    t->addProgress(1);
-                }
-                if (t->getName().find("屠龙勇士") != std::string::npos &&
-                    enemy->getName().find("黑龙王") != std::string::npos) {
-                    t->addProgress(1);
-                }
+                int index = readInt("请输入要出售的物品编号：", 1, player_.inventorySize()) - 1;
+                shop_.sell(player_, index);
+                checkTasksAfterInventoryChange();
+                saveGame();
             }
         }
+    }
+}
+
+void GameManager::taskMenu() {
+    while (true) {
+        checkTasksAfterInventoryChange();
+        std::cout << "\n-------------- 任务系统 --------------\n";
+        std::cout << "1. 查看所有任务\n";
+        std::cout << "2. 接受任务\n";
+        std::cout << "3. 领取奖励\n";
+        std::cout << "0. 返回主菜单\n";
+        int choice = readInt("请选择：", 0, 3);
+        if (choice == 0) return;
+        if (choice == 1) {
+            for (const auto& task : tasks_) std::cout << task.info();
+            pause();
+        } else if (choice == 2) {
+            int id = readInt("请输入任务ID：", 1, static_cast<int>(tasks_.size()));
+            if (tasks_[id - 1].accept()) std::cout << "接受任务成功。\n";
+            else std::cout << "该任务不能重复接受。\n";
+            checkTasksAfterInventoryChange();
+            saveGame();
+        } else if (choice == 3) {
+            int id = readInt("请输入任务ID：", 1, static_cast<int>(tasks_.size()));
+            if (tasks_[id - 1].claim(player_, itemFactory_)) {
+                std::cout << "奖励领取成功，经验、金币和奖励物品已自动发放。\n";
+            } else {
+                std::cout << "该任务尚未完成或奖励已领取。\n";
+            }
+            saveGame();
+        }
+    }
+}
+
+void GameManager::battleMenu() {
+    while (true) {
+        std::cout << "\n-------------- 战斗系统 --------------\n";
+        for (int i = 0; i < static_cast<int>(enemyTemplates_.size()); ++i) {
+            std::cout << i + 1 << ". " << enemyTemplates_[i]->info() << "\n";
+        }
+        std::cout << "0. 返回主菜单\n";
+        int choice = readInt("请选择敌人：", 0, static_cast<int>(enemyTemplates_.size()));
+        if (choice == 0) return;
+        fightEnemy(enemyTemplates_[choice - 1]->clone());
+        saveGame();
+        if (!player_.isAlive()) player_.heal(player_.getMaxHp() / 2);
+    }
+}
+
+void GameManager::showCourseDesignNotes() const {
+    std::cout << "\n========== 课程设计要求体现说明 ==========\n";
+    std::cout << "STL vector：用于背包、商品列表、任务列表、敌人模板列表，适合顺序菜单展示。\n";
+    std::cout << "STL map：用于物品工厂，通过物品名称快速创建任务奖励和存档物品。\n";
+    std::cout << "STL string：用于角色名、任务描述、商品信息、文本存档字段。\n";
+    std::cout << "封装：角色、物品、敌人、任务、商店属性均为 private/protected，只能通过公共接口修改。\n";
+    std::cout << "继承/多态：Item -> Food/Medicine/Equipment，Enemy -> NormalEnemy/EliteEnemy/BossEnemy。\n";
+    std::cout << "纯虚函数：Item::use/effectText/clone，Enemy::attackPlayer/kind/clone。\n";
+    std::cout << "运行时多态：背包使用 shared_ptr<Item>，战斗使用 unique_ptr<Enemy> 调用虚函数。\n";
+    std::cout << "========================================\n";
+    pause();
+}
+
+int GameManager::readInt(const std::string& prompt, int minValue, int maxValue) const {
+    while (true) {
+        std::cout << prompt;
+        std::string line;
+        std::getline(std::cin, line);
+        std::stringstream ss(line);
+        int value = 0;
+        char extra = '\0';
+        if (ss >> value && !(ss >> extra) && value >= minValue && value <= maxValue) {
+            return value;
+        }
+        std::cout << "输入无效，请输入 " << minValue << " 到 " << maxValue << " 之间的数字。\n";
+    }
+}
+
+std::string GameManager::readLine(const std::string& prompt) const {
+    while (true) {
+        std::cout << prompt;
+        std::string line;
+        std::getline(std::cin, line);
+        if (!line.empty()) return line;
+        std::cout << "输入不能为空，请重新输入。\n";
+    }
+}
+
+void GameManager::pause() const {
+    std::cout << "按回车继续...";
+    std::string ignored;
+    std::getline(std::cin, ignored);
+}
+
+void GameManager::checkTasksAfterInventoryChange() {
+    for (auto& task : tasks_) task.updateByInventory(player_.getInventory());
+}
+
+void GameManager::checkTasksAfterEnemyDefeated(const std::string& enemyName) {
+    for (auto& task : tasks_) task.updateByEnemy(enemyName);
+    checkTasksAfterInventoryChange();
+}
+
+void GameManager::saveGame() const {
+    if (!hasPlayer_) return;
+    std::ofstream out(saveFile_);
+    if (!out) {
+        std::cout << "保存失败：无法写入存档文件。\n";
+        return;
+    }
+    out << "CampusRPGSaveV1\n";
+    out << "PLAYER|" << player_.getName() << "|" << player_.getLevel() << "|"
+        << player_.getCurrentHp() << "|" << player_.getMaxHp() << "|"
+        << player_.getExp() << "|" << player_.getExpToLevel() << "|"
+        << player_.getGold() << "|" << player_.getAttack() << "|"
+        << player_.getDefense() << "\n";
+
+    out << "INVENTORY|" << player_.inventorySize() << "\n";
+    for (const auto& item : player_.getInventory()) {
+        out << item->saveLine() << "\n";
+    }
+
+    out << "TASKS|" << tasks_.size() << "\n";
+    for (const auto& task : tasks_) {
+        out << task.saveLine() << "\n";
+    }
+}
+
+bool GameManager::loadGame() {
+    std::ifstream in(saveFile_);
+    if (!in) return false;
+    return parseSaveFile(in);
+}
+
+bool GameManager::parseSaveFile(std::istream& in) {
+    try {
+        std::string line;
+        if (!std::getline(in, line) || line != "CampusRPGSaveV1") return false;
+        if (!std::getline(in, line)) return false;
+        auto playerParts = split(line, '|');
+        if (playerParts.size() != 10 || playerParts[0] != "PLAYER") return false;
+        player_.setFullData(playerParts[1], std::stoi(playerParts[2]), std::stoi(playerParts[3]),
+                            std::stoi(playerParts[4]), std::stoi(playerParts[5]),
+                            std::stoi(playerParts[6]), std::stoi(playerParts[7]),
+                            std::stoi(playerParts[8]), std::stoi(playerParts[9]));
+
+        if (!std::getline(in, line)) return false;
+        auto invHeader = split(line, '|');
+        if (invHeader.size() != 2 || invHeader[0] != "INVENTORY") return false;
+        int invCount = std::stoi(invHeader[1]);
+        for (int i = 0; i < invCount; ++i) {
+            if (!std::getline(in, line)) return false;
+            auto parts = split(line, '|');
+            if (parts.empty()) return false;
+            std::shared_ptr<Item> item;
+            if (parts[0] == "Food" && parts.size() == 5) {
+                item = std::make_shared<Food>(parts[1], std::stoi(parts[2]), parts[3], std::stoi(parts[4]));
+            } else if (parts[0] == "Medicine" && parts.size() == 5) {
+                item = std::make_shared<Medicine>(parts[1], std::stoi(parts[2]), parts[3], std::stoi(parts[4]));
+            } else if (parts[0] == "Equipment" && parts.size() == 7) {
+                item = std::make_shared<Equipment>(parts[1], std::stoi(parts[2]), parts[3],
+                                                   std::stoi(parts[4]), std::stoi(parts[5]), std::stoi(parts[6]) != 0);
+            } else {
+                return false;
+            }
+            player_.addItem(item);
+        }
+
+        if (!std::getline(in, line)) return false;
+        auto taskHeader = split(line, '|');
+        if (taskHeader.size() != 2 || taskHeader[0] != "TASKS") return false;
+        int taskCount = std::stoi(taskHeader[1]);
+        if (taskCount != static_cast<int>(tasks_.size())) return false;
+        for (int i = 0; i < taskCount; ++i) {
+            if (!std::getline(in, line)) return false;
+            auto parts = split(line, '|');
+            if (parts.size() != 3) return false;
+            int id = std::stoi(parts[0]);
+            if (id < 1 || id > static_cast<int>(tasks_.size())) return false;
+            tasks_[id - 1].setStatus(statusFromInt(std::stoi(parts[1])));
+            tasks_[id - 1].setCurrentCount(std::stoi(parts[2]));
+        }
+        hasPlayer_ = true;
         return true;
-    } else {
-        battleLog += "\n=== 战败... ===\n失去了部分金币\n";
-        player->addGold(-player->getGold() / 5);
+    } catch (...) {
         return false;
     }
 }
 
-void GameManager::checkTaskProgress() {
-    // Tasks are updated during battle
+std::shared_ptr<Item> GameManager::createItemByName(const std::string& name) const {
+    auto it = itemFactory_.find(name);
+    if (it == itemFactory_.end()) return nullptr;
+    return it->second->clone();
 }
 
-std::string GameManager::depositItem(int index) {
-    if (!isTown()) return "只有城镇节点可以打开仓库。";
-    if (!player) return "角色不存在。";
-    auto& inv = player->getInventory();
-    if (index < 0 || index >= (int)inv.size()) return "请选择要存入仓库的物品。";
-    std::string name = inv[index]->getName();
-    warehouse.push_back(inv[index]);
-    inv.erase(inv.begin() + index);
-    return "已将 " + name + " 存入仓库。";
-}
-
-std::string GameManager::withdrawItem(int index) {
-    if (!isTown()) return "只有城镇节点可以打开仓库。";
-    if (!player) return "角色不存在。";
-    if (player->isInventoryFull()) return "背包已满，无法从仓库取出物品。";
-    if (index < 0 || index >= (int)warehouse.size()) return "请选择要取出的物品。";
-    std::string name = warehouse[index]->getName();
-    player->addItem(warehouse[index]);
-    warehouse.erase(warehouse.begin() + index);
-    return "已从仓库取出 " + name + "。";
-}
-
-std::string GameManager::depositGold(int amount) {
-    if (!isTown()) return "只有城镇节点可以打开银行。";
-    if (!player) return "角色不存在。";
-    if (amount <= 0) return "请输入大于0的金币数量。";
-    if (!player->spendGold(amount)) return "身上金币不足。";
-    bankGold += amount;
-    return "已存入 " + std::to_string(amount) + " G。";
-}
-
-std::string GameManager::withdrawGold(int amount) {
-    if (!isTown()) return "只有城镇节点可以打开银行。";
-    if (!player) return "角色不存在。";
-    if (amount <= 0) return "请输入大于0的金币数量。";
-    if (bankGold < amount) return "银行余额不足。";
-    bankGold -= amount;
-    player->addGold(amount);
-    return "已取出 " + std::to_string(amount) + " G。";
-}
-
-std::string GameManager::reinforceWithScroll(int inventoryIndex) {
-    if (!isTown()) return "只有城镇节点可以打开铁匠铺。";
-    if (!player) return "角色不存在。";
-    auto& inv = player->getInventory();
-    if (inventoryIndex < 0 || inventoryIndex >= (int)inv.size()) return "请选择强化卷。";
-    const std::string name = inv[inventoryIndex]->getName();
-    if (name != "武器强化卷" && name != "铠甲强化卷") {
-        return "铁匠铺只能使用武器强化卷或铠甲强化卷。";
+void GameManager::useItemFromInventory(bool inBattle) {
+    if (player_.inventorySize() == 0) {
+        std::cout << "背包为空，无法使用物品。\n";
+        return;
     }
-    std::string result = inv[inventoryIndex]->use(*player);
-    inv.erase(inv.begin() + inventoryIndex);
-    return result;
-}
-
-int GameManager::maxSaveSlots() { return 4; }
-
-std::string GameManager::saveDirPath() {
-    QDir dir(QCoreApplication::applicationDirPath());
-    dir.mkpath("saves");
-    return dir.filePath("saves").toStdString();
-}
-
-bool GameManager::saveExists(int slot) const {
-    if (slot < 1 || slot > maxSaveSlots()) return false;
-    QDir dir(QString::fromStdString(saveDirPath()));
-    return QFile::exists(dir.filePath(QString("slot%1.ini").arg(slot)));
-}
-
-std::string GameManager::saveSlotName(int slot) const {
-    if (!saveExists(slot)) return "空存档";
-    QDir dir(QString::fromStdString(saveDirPath()));
-    QSettings s(dir.filePath(QString("slot%1.ini").arg(slot)), QSettings::IniFormat);
-    return s.value("meta/name", QString("存档%1").arg(slot)).toString().toStdString();
-}
-
-std::string GameManager::saveGame(int slot) {
-    if (!player) return "没有可保存的角色。";
-    if (slot < 1 || slot > maxSaveSlots()) return "存档槽无效。";
-
-    QDir dir(QString::fromStdString(saveDirPath()));
-    QSettings s(dir.filePath(QString("slot%1.ini").arg(slot)), QSettings::IniFormat);
-    s.clear();
-    s.setValue("meta/name", QString::fromStdString(player->getName()));
-    s.setValue("meta/location", map ? map->currentLocation : 0);
-    s.setValue("player/level", player->getLevel());
-    s.setValue("player/hp", player->getHp());
-    s.setValue("player/maxHp", player->getMaxHp());
-    s.setValue("player/mp", player->getMp());
-    s.setValue("player/maxMp", player->getMaxMp());
-    s.setValue("player/exp", player->getExp());
-    s.setValue("player/gold", player->getGold());
-    s.setValue("player/attack", player->getAttack());
-    s.setValue("player/defense", player->getDefense());
-    s.setValue("bank/gold", bankGold);
-    s.setValue("progress/battlesSinceRest", battlesSinceRest);
-    s.setValue("progress/mainlineStage", mainlineStage);
-    s.setValue("progress/restPointAvailable", restPointAvailable);
-
-    QStringList invIds;
-    for (const auto& item : player->getInventory()) {
-        invIds << QString::fromStdString(item->getSaveId());
+    const auto& inv = player_.getInventory();
+    for (int i = 0; i < static_cast<int>(inv.size()); ++i) {
+        std::cout << i + 1 << ". " << inv[i]->getName()
+                  << " | 类型：" << inv[i]->getType()
+                  << " | 效果：" << inv[i]->effectText() << "\n";
     }
-    s.setValue("items/inventory", invIds);
-
-    QStringList whIds;
-    for (const auto& item : warehouse) {
-        whIds << QString::fromStdString(item->getSaveId());
+    int index = readInt("请输入要使用的物品编号：", 1, player_.inventorySize()) - 1;
+    auto item = player_.getItem(index);
+    if (!item) return;
+    if (inBattle && !item->canUseInBattle()) {
+        std::cout << "该物品不能在战斗中使用。\n";
+        return;
     }
-    s.setValue("items/warehouse", whIds);
-    s.sync();
-    currentSaveSlot = slot;
-    return "存档 " + std::to_string(slot) + " 已保存。";
+    int beforeHp = player_.getCurrentHp();
+    bool ok = item->use(player_, inBattle);
+    if (!ok) {
+        std::cout << "使用失败：可能是满血、战斗限制或当前状态不允许。\n";
+        return;
+    }
+    std::cout << "使用成功：" << item->getName()
+              << "，生命 " << beforeHp << " -> " << player_.getCurrentHp() << "。\n";
+    if (item->getType() != "装备") player_.removeItem(index);
+    saveGame();
 }
 
-std::string GameManager::loadGame(int slot) {
-    if (!saveExists(slot)) return "该存档槽为空。";
-    QDir dir(QString::fromStdString(saveDirPath()));
-    QSettings s(dir.filePath(QString("slot%1.ini").arg(slot)), QSettings::IniFormat);
+void GameManager::playerAttackEnemy(Enemy& enemy) const {
+    int damage = std::max(1, player_.getAttack() - enemy.getDefense());
+    enemy.takeDamage(damage);
+    std::cout << player_.getName() << " 攻击 " << enemy.getName()
+              << "，造成 " << damage << " 点伤害。\n";
+}
 
-    std::string name = s.value("meta/name", "勇者").toString().toStdString();
-    resetWorldForNewPlayer(name);
-    player->setState(name,
-        s.value("player/level", 1).toInt(),
-        s.value("player/hp", 100).toInt(),
-        s.value("player/maxHp", 100).toInt(),
-        s.value("player/mp", 60).toInt(),
-        s.value("player/maxMp", 60).toInt(),
-        s.value("player/exp", 0).toInt(),
-        s.value("player/gold", 100).toInt(),
-        s.value("player/attack", 12).toInt(),
-        s.value("player/defense", 6).toInt());
-    bankGold = s.value("bank/gold", 0).toInt();
-    battlesSinceRest = s.value("progress/battlesSinceRest", 0).toInt();
-    mainlineStage = s.value("progress/mainlineStage", 1).toInt();
-    restPointAvailable = s.value("progress/restPointAvailable", false).toBool();
-    if (map) {
-        map->currentLocation = s.value("meta/location", 0).toInt();
+bool GameManager::fightEnemy(std::unique_ptr<Enemy> enemy) {
+    int round = 1;
+    std::cout << "\n战斗开始！敌人：" << enemy->getName() << "\n";
+    while (player_.isAlive() && enemy->isAlive()) {
+        std::cout << "\n第 " << round << " 回合\n";
+        std::cout << "1. 普通攻击\n";
+        std::cout << "2. 使用药品\n";
+        int action = readInt("请选择行动：", 1, 2);
+        if (action == 2) {
+            useItemFromInventory(true);
+        } else {
+            playerAttackEnemy(*enemy);
+        }
+
+        std::cout << "状态：玩家 HP " << player_.getCurrentHp() << "/" << player_.getMaxHp()
+                  << " | 敌人 HP " << enemy->getCurrentHp() << "/" << enemy->getMaxHp() << "\n";
+        if (!enemy->isAlive()) break;
+
+        int damage = enemy->attackPlayer(player_, round);
+        std::cout << enemy->getName() << " 反击，造成 " << damage << " 点伤害。\n";
+        std::cout << "状态：玩家 HP " << player_.getCurrentHp() << "/" << player_.getMaxHp()
+                  << " | 敌人 HP " << enemy->getCurrentHp() << "/" << enemy->getMaxHp() << "\n";
+        ++round;
     }
 
-    player->clearInventory();
-    QStringList invIds = s.value("items/inventory").toStringList();
-    for (const QString& id : invIds) {
-        auto item = createSpecialItemById(id.toStdString());
-        if (item) player->addItem(item);
+    if (player_.isAlive()) {
+        std::cout << "\n战斗胜利！获得 " << enemy->getRewardExp()
+                  << " 经验和 " << enemy->getRewardGold() << " 金币。\n";
+        player_.addExp(enemy->getRewardExp());
+        player_.addGold(enemy->getRewardGold());
+        int roll = std::rand() % 100 + 1;
+        if (roll <= enemy->getDropRate()) {
+            auto item = createItemByName(enemy->getDropItemName());
+            if (item && player_.addItem(item)) {
+                std::cout << "掉落物品：" << item->getName() << "，已放入背包。\n";
+            } else {
+                std::cout << "掉落物品但背包已满，无法获得。\n";
+            }
+        }
+        checkTasksAfterEnemyDefeated(enemy->getName());
+        return true;
     }
 
-    warehouse.clear();
-    QStringList whIds = s.value("items/warehouse").toStringList();
-    for (const QString& id : whIds) {
-        auto item = createSpecialItemById(id.toStdString());
-        if (item) warehouse.push_back(item);
-    }
-
-    currentSaveSlot = slot;
-    return "已读取存档 " + std::to_string(slot) + "。";
-}
-
-std::string GameManager::deleteSave(int slot) {
-    if (slot < 1 || slot > maxSaveSlots()) return "存档槽无效。";
-    QDir dir(QString::fromStdString(saveDirPath()));
-    QString path = dir.filePath(QString("slot%1.ini").arg(slot));
-    if (!QFile::exists(path)) return "该存档槽已经为空。";
-    QFile::remove(path);
-    if (currentSaveSlot == slot) currentSaveSlot = -1;
-    return "已删除存档 " + std::to_string(slot) + "。";
-}
-
-std::string GameManager::moveTo(int locIndex) {
-    if (!map || !player) return "系统错误";
-    return map->moveTo(locIndex);
-}
-
-std::string GameManager::rest() {
-    if (!map || !player) return "系统错误";
-    std::string result = map->rest();
-    if (result == "rest_ok") {
-        player->heal(player->getMaxHp());
-        return "你在" + map->getCurrentLocationName() + "休息了一会儿。\n生命值完全恢复!";
-    }
-    return result;
-}
-
-int GameManager::checkEncounter() {
-    if (!map) return -1;
-    return map->getRandomEncounter();
+    std::cout << "\n战斗失败，已退回主菜单。当前存档会保留，请购买药品或升级后再挑战。\n";
+    saveGame();
+    return false;
 }

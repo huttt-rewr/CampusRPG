@@ -1,61 +1,84 @@
-# CampusRPG
+# 校园RPG冒险游戏系统
 
-校园 RPG 冒险游戏课程设计，使用 C++17 和 Qt Widgets 开发。
+2026 年 C++ 程序设计课程设计大作业，主题为《校园RPG冒险游戏系统》。当前版本为标准 C++17 控制台程序，不依赖 Qt 或其他第三方库。
 
-## 当前版本
+## 功能清单
 
-本版本按新的《校园rpg冒险游戏》要求重做了主界面和主要玩法流程，旧校园地图入口已从 UI 中移除，改为“学期养成 -> 天使商店 -> 七层地窟 -> 轮回/通关”的结构。
+- 启动菜单：新建角色 / 读取存档 / 退出。
+- 角色管理：新建角色、查看完整属性、自动升级、手动保存。
+- 背包管理：获得、查看、使用、删除物品，容量限制 20。
+- 物品体系：食物、药品、装备三类物品，不同使用规则和效果。
+- 商店系统：查看商品、购买商品、出售背包物品，自动结算金币。
+- 任务系统：未接、已接未完成、已完成未领奖、已领奖四种状态。
+- 任务条件：击败指定数量敌人、收集指定数量物品。
+- 战斗系统：普通敌人、精英敌人、BOSS 敌人，回合制战斗，战斗中可用药品。
+- 等级成长：经验累计、跨级升级、属性成长、升级后生命回满。
+- 文本存档：角色属性、背包、任务状态、金币和经验自动保存到 `campus_rpg_save.txt`。
 
-主要功能：
+## 文件结构
 
-- 4 个独立存档槽：新建、读取、保存、删除。
-- 六名角色：学生、冰法师、圣骑士、祈福者、血战士、魔术师，可在新建存档时命名。
-- 角色界面：查看生命、蓝量、活力、攻防属性、等级经验和技能说明。
-- 课表系统：每名角色独立安排一周 14 个半天，执行后按 20 周学期结算成长、活力和金币。
-- 天使商店：出售药品、食品和养成物品；离开商店会清空未花完金币。
-- 背包系统：40 格容量，物品可查看、使用、丢弃；食品不能在地窟流程中使用。
-- 编队系统：最多 3 人上阵，支持“前 1 后 2”和“前 2 后 1”两种阵型。
-- 地窟系统：7 层地窟、恶魔商店、宝箱、普通战斗、精英战斗、最终 Boss。
-- 恶魔商店：出售战斗消耗品、养成物品和各层装备。
-- 轮回游记：遭遇过的敌人会显示信息，未知敌人显示为“???”。
-- 任务教学：命名、天使商店、恶魔商店、装备、编队、首次探索。
+```text
+include/Character.h    角色类定义
+include/Item.h         物品基类定义
+include/Food.h         食物类定义
+include/Medicine.h     药品类定义
+include/Equipment.h    装备类定义
+include/Enemy.h        敌人基类及三种敌人定义
+include/Task.h         任务类定义
+include/Shop.h         商店类定义
+include/GameManager.h  游戏管理类定义
 
-## 运行方式
+src/main.cpp           程序入口
+src/Character.cpp      角色类实现
+src/Item.cpp           物品基类实现
+src/Food.cpp           食物类实现
+src/Medicine.cpp       药品类实现
+src/Equipment.cpp      装备类实现
+src/Enemy.cpp          敌人类实现
+src/Task.cpp           任务类实现
+src/Shop.cpp           商店类实现
+src/GameManager.cpp    游戏流程、菜单、存档和战斗实现
 
-Windows 下双击：
+CMakeLists.txt         CMake 构建文件
+BuildGame.cmd          Windows 一键构建脚本
+RunGame.cmd            Windows 一键启动脚本
+```
+
+## 编译运行
+
+Windows 下可直接双击：
 
 ```bat
+BuildGame.cmd
 RunGame.cmd
 ```
 
-或直接运行：
-
-```text
-release/CampusRPG_GUI.exe
-```
-
-## 构建方式
-
-推荐 Qt 5.15.2 + MinGW：
+也可以手动编译：
 
 ```bat
-qmake CampusRPG.pro -o Makefile
-mingw32-make -j2
+g++ -std=c++17 -Wall -Wextra -Iinclude src\main.cpp src\Character.cpp src\Item.cpp src\Food.cpp src\Medicine.cpp src\Equipment.cpp src\Enemy.cpp src\Task.cpp src\Shop.cpp src\GameManager.cpp -o release\CampusRPG.exe
 ```
 
-生成程序位于：
+或使用 CMake：
 
-```text
-release/CampusRPG_GUI.exe
+```bat
+cmake -S . -B build
+cmake --build build
 ```
 
-## 项目结构
+## STL 使用说明
 
-```text
-include/          旧版模型类头文件
-src/MainWindow.*  新版 Qt 主界面和玩法流程
-src/              旧版模型类源码及程序入口
-CampusRPG.pro     qmake 工程文件
-RunGame.cmd       启动脚本
-BuildGame.cmd     构建脚本
-```
+- `std::vector`：用于角色背包、商店商品列表、任务列表、敌人模板列表。理由是这些数据需要按顺序展示菜单、按编号访问，`vector` 简单高效。
+- `std::map`：用于物品工厂 `itemFactory_`，根据物品名称快速创建任务奖励、战斗掉落和存档中的物品。
+- `std::string`：用于角色名称、任务描述、商品信息、存档文本字段，便于文本菜单和文件读写。
+- `std::shared_ptr`：用于背包和商品中的物品对象，便于多处安全持有物品基类指针。
+- `std::unique_ptr`：用于敌人战斗实例，确保敌人对象生命周期清晰，战斗结束自动释放。
+
+## 面向对象体现
+
+- 封装：所有类的属性均为 `private` 或 `protected`，外部只能通过公共接口读取或修改。
+- 继承体系一：`Item` 为物品基类，派生 `Food`、`Medicine`、`Equipment`。
+- 继承体系二：`Enemy` 为敌人基类，派生 `NormalEnemy`、`EliteEnemy`、`BossEnemy`。
+- 多态：`Item` 和 `Enemy` 均定义纯虚函数，并通过基类指针调用子类重写逻辑。
+- 虚析构函数：`Item` 和 `Enemy` 均定义 `virtual ~...() = default`，避免通过基类指针释放派生对象时出错。
+- 六个核心类：`Character`、`Item`、`Task`、`Enemy`、`Shop`、`GameManager` 均已实现。

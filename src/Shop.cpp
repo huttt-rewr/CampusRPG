@@ -1,35 +1,66 @@
+// Shop.cpp
+// 商店类实现：查看商品、购买商品、出售背包物品，并自动结算金币。
 #include "Shop.h"
 #include "Character.h"
-#include <sstream>
+#include "Item.h"
+#include <iostream>
 
-Shop::Shop(const std::string& n) : name(n) {}
+Shop::Shop() = default;
 
-std::vector<std::shared_ptr<Item>>& Shop::getItems() { return items; }
+void Shop::addGoods(const std::shared_ptr<Item>& item) {
+    if (item) goods_.push_back(item);
+}
 
-std::string Shop::buyItem(int index, Character& c) {
-    if (index < 0 || index >= (int)items.size()) return "无效商品";
-    auto& item = items[index];
-    if (c.isInventoryFull()) {
-        return "背包已满，无法购买 " + item->getName() + "。";
+void Shop::showGoods() const {
+    std::cout << "================ 商品列表 ================\n";
+    for (int i = 0; i < static_cast<int>(goods_.size()); ++i) {
+        const auto& item = goods_[i];
+        std::cout << i + 1 << ". " << item->getName()
+                  << " | 类型：" << item->getType()
+                  << " | 价格：" << item->getPrice()
+                  << " | 描述：" << item->getDescription()
+                  << " | 效果：" << item->effectText() << "\n";
     }
-    if (!c.spendGold(item->getPrice()))
-        return "金币不足! 需要 " + std::to_string(item->getPrice()) + "G";
-    std::string n = item->getName();
-    c.addItem(item);
-    return "购买了 " + n + "!";
+    std::cout << "==========================================\n";
 }
 
-std::string Shop::sellItem(int index, Character& c) {
-    auto& inv = c.getInventory();
-    if (index < 0 || index >= (int)inv.size()) return "无效物品";
-    int price = inv[index]->getPrice() / 2;
-    std::string n = inv[index]->getName();
-    c.addGold(price);
-    c.removeItem(index);
-    std::ostringstream oss;
-    oss << "出售 " << n << " 获得 " << price << "G";
-    return oss.str();
+bool Shop::buy(Character& player, int index) const {
+    if (index < 0 || index >= static_cast<int>(goods_.size())) return false;
+    const auto& item = goods_[index];
+    if (player.isInventoryFull()) {
+        std::cout << "背包已满，购买失败。\n";
+        return false;
+    }
+    if (!player.spendGold(item->getPrice())) {
+        std::cout << "金币不足，购买失败。\n";
+        return false;
+    }
+    player.addItem(item->clone());
+    std::cout << "购买成功：" << item->getName()
+              << "，剩余金币 " << player.getGold() << "。\n";
+    return true;
 }
 
-void Shop::addItem(std::shared_ptr<Item> item) { items.push_back(item); }
-std::string Shop::getName() const { return name; }
+bool Shop::sell(Character& player, int inventoryIndex) const {
+    auto item = player.getItem(inventoryIndex);
+    if (!item) return false;
+    int sellPrice = item->getPrice() / 2;
+    player.removeItem(inventoryIndex);
+    player.addGold(sellPrice);
+    std::cout << "出售成功：" << item->getName()
+              << "，获得金币 " << sellPrice
+              << "，当前金币 " << player.getGold() << "。\n";
+    return true;
+}
+
+const std::vector<std::shared_ptr<Item>>& Shop::getGoods() const {
+    return goods_;
+}
+
+std::map<std::string, std::shared_ptr<Item>> Shop::buildItemFactory() const {
+    std::map<std::string, std::shared_ptr<Item>> factory;
+    for (const auto& item : goods_) {
+        factory[item->getName()] = item;
+    }
+    return factory;
+}

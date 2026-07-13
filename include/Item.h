@@ -1,32 +1,34 @@
+// Item.h
+// 物品继承体系基类：定义纯虚函数，食物、药品、装备通过多态实现不同使用逻辑。
 #ifndef ITEM_H
 #define ITEM_H
 
+#include <memory>
 #include <string>
 
 class Character;
-class Enemy;
 
 class Item {
 protected:
-    std::string name;
-    std::string type;
-    int price;
-    std::string description;
+    std::string name_;
+    std::string type_;
+    int price_;
+    std::string description_;
 
 public:
-    Item(const std::string& name, const std::string& type,
-         int price, const std::string& desc);
+    Item(std::string name, std::string type, int price, std::string description);
     virtual ~Item() = default;
 
-    virtual std::string use(Character& character) = 0;
-    virtual std::string useInBattle(Character& character, Enemy* enemy);
-    virtual std::string getInfo() const;
-    virtual std::string getSaveId() const;
-
-    std::string getName() const;
-    std::string getType() const;
+    const std::string& getName() const;
+    const std::string& getType() const;
     int getPrice() const;
-    std::string getDesc() const;
+    const std::string& getDescription() const;
+
+    virtual bool canUseInBattle() const = 0;
+    virtual bool use(Character& player, bool inBattle) = 0;
+    virtual std::string effectText() const = 0;
+    virtual std::shared_ptr<Item> clone() const = 0;
+    virtual std::string saveLine() const = 0;
 };
 
 #endif

@@ -1,77 +1,70 @@
+// Enemy.h
+// 敌人继承体系：敌人基类定义纯虚攻击逻辑，普通、精英、BOSS 敌人分别重写。
 #ifndef ENEMY_H
 #define ENEMY_H
 
+#include <memory>
 #include <string>
 
 class Character;
 
 class Enemy {
 protected:
-    std::string name;
-    int hp;
-    int maxHp;
-    int attack;
-    int baseAttack;
-    int defense;
-    int expReward;
-    int goldReward;
-    int fatigueTurns;
+    std::string name_;
+    int maxHp_;
+    int currentHp_;
+    int attack_;
+    int defense_;
+    int rewardExp_;
+    int rewardGold_;
+    std::string dropItemName_;
+    int dropRate_;
 
 public:
-    Enemy(const std::string& name, int hp, int atk, int def,
-          int expR, int goldR);
+    Enemy(std::string name, int hp, int attack, int defense,
+          int rewardExp, int rewardGold, std::string dropItemName, int dropRate);
     virtual ~Enemy() = default;
 
-    virtual int attackPlayer() const;
-    void takeDamage(int dmg);
-    bool isAlive() const;
-    int getExpReward() const;
-    int getGoldReward() const;
-
-    std::string getName() const;
-    int getHp() const;
+    const std::string& getName() const;
+    int getCurrentHp() const;
     int getMaxHp() const;
     int getAttack() const;
     int getDefense() const;
-    void buffAttack(int amount);
-    void applyFatigue(int turns);
-    bool consumeFatigueSkip();
-    int getFatigueTurns() const;
-    virtual void resetBattleState();
+    int getRewardExp() const;
+    int getRewardGold() const;
+    const std::string& getDropItemName() const;
+    int getDropRate() const;
+    bool isAlive() const;
+    void takeDamage(int amount);
+    void reset();
+    virtual int attackPlayer(Character& player, int round) = 0;
+    virtual std::string kind() const = 0;
+    virtual std::unique_ptr<Enemy> clone() const = 0;
+    std::string info() const;
 };
 
-class NormalMonster : public Enemy {
-    int fleeThreshold;
+class NormalEnemy : public Enemy {
 public:
-    NormalMonster(const std::string& name, int hp, int atk, int def,
-                  int expR, int goldR, int fleeHP = 20);
-    int attackPlayer() const override;
-    bool tryFlee() const;
+    NormalEnemy();
+    int attackPlayer(Character& player, int round) override;
+    std::string kind() const override;
+    std::unique_ptr<Enemy> clone() const override;
 };
 
-class EliteMonster : public Enemy {
-    double critRate;
-    int armor;
+class EliteEnemy : public Enemy {
 public:
-    EliteMonster(const std::string& name, int hp, int atk, int def,
-                 int expR, int goldR, double crit = 0.25, int armor = 5);
-    int attackPlayer() const override;
-    bool isCrit() const;
+    EliteEnemy();
+    int attackPlayer(Character& player, int round) override;
+    std::string kind() const override;
+    std::unique_ptr<Enemy> clone() const override;
 };
 
-class Boss : public Enemy {
-    std::string skillName;
-    int skillDamage;
-    int phase;
+class BossEnemy : public Enemy {
 public:
-    Boss(const std::string& name, int hp, int atk, int def,
-         int expR, int goldR, const std::string& skill, int skillDmg);
-    int attackPlayer() const override;
-    int useSkill() const;
-    std::string getSkillName() const;
-    void checkPhase();
-    int getPhase() const;
-    void resetBattleState() override;
+    BossEnemy();
+    int attackPlayer(Character& player, int round) override;
+    std::string kind() const override;
+    std::unique_ptr<Enemy> clone() const override;
 };
 
 #endif

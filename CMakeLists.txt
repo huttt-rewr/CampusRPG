@@ -1,29 +1,16 @@
+# CMakeLists.txt
+# 标准 C++ 控制台版构建脚本，不依赖 Qt 或第三方库。
 cmake_minimum_required(VERSION 3.16)
-project(CampusRPG_GUI VERSION 1.0 LANGUAGES CXX)
+project(CampusRPG LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
-set(CMAKE_AUTOUIC ON)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/release)
 
-# Find Qt6 first, fall back to Qt5
-find_package(Qt6 COMPONENTS Widgets QUIET)
-if(NOT Qt6_FOUND)
-    find_package(Qt5 5.15 REQUIRED COMPONENTS Widgets)
-    set(QT_LIBS Qt5::Widgets)
-    message(STATUS "Using Qt5")
-else()
-    set(QT_LIBS Qt6::Widgets)
-    message(STATUS "Using Qt6")
-endif()
+include_directories(include)
 
-set(SOURCES
+add_executable(CampusRPG
     src/main.cpp
-    src/MainWindow.cpp
-    src/MainWindow.h
-    src/MapWidget.cpp
-    src/MapWidget.h
     src/Character.cpp
     src/Item.cpp
     src/Food.cpp
@@ -32,33 +19,5 @@ set(SOURCES
     src/Enemy.cpp
     src/Task.cpp
     src/Shop.cpp
-    src/SpecialItem.cpp
     src/GameManager.cpp
-    src/Location.cpp
 )
-
-set(HEADERS
-    include/Character.h
-    include/Item.h
-    include/Food.h
-    include/Medicine.h
-    include/Equipment.h
-    include/Enemy.h
-    include/Task.h
-    include/Shop.h
-    include/SpecialItem.h
-    include/GameManager.h
-    include/Location.h
-)
-
-add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
-
-target_include_directories(${PROJECT_NAME} PRIVATE include src)
-target_link_libraries(${PROJECT_NAME} PRIVATE ${QT_LIBS})
-
-# Compiler warnings
-if(MSVC)
-    target_compile_options(${PROJECT_NAME} PRIVATE /W4 /utf-8)
-else()
-    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra)
-endif()

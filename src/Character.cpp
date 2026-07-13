@@ -1,134 +1,129 @@
+// Character.cpp
+// 角色类实现：负责角色属性封装、背包维护、金币经验和自动升级。
 #include "Character.h"
 #include "Item.h"
 #include <algorithm>
+#include <iostream>
 #include <sstream>
 
 Character::Character()
-    : name("Unknown"), level(1), hp(100), maxHp(100), mp(60), maxMp(60),
-      exp(0), gold(0), attack(10), defense(5) {
-    calcExpToNext();
-}
+    : Character("未命名同学") {}
 
 Character::Character(const std::string& name)
-    : name(name), level(1), hp(100), maxHp(100), mp(60), maxMp(60),
-      exp(0), gold(100), attack(12), defense(6) {
-    calcExpToNext();
+    : name_(name), level_(1), currentHp_(100), maxHp_(100), exp_(0),
+      expToLevel_(100), gold_(100), attack_(18), defense_(6) {}
+
+const std::string& Character::getName() const { return name_; }
+int Character::getLevel() const { return level_; }
+int Character::getCurrentHp() const { return currentHp_; }
+int Character::getMaxHp() const { return maxHp_; }
+int Character::getExp() const { return exp_; }
+int Character::getExpToLevel() const { return expToLevel_; }
+int Character::getGold() const { return gold_; }
+int Character::getAttack() const { return attack_; }
+int Character::getDefense() const { return defense_; }
+bool Character::isAlive() const { return currentHp_ > 0; }
+bool Character::isInventoryFull() const { return static_cast<int>(inventory_.size()) >= kInventoryLimit; }
+int Character::inventorySize() const { return static_cast<int>(inventory_.size()); }
+
+void Character::setName(const std::string& name) {
+    name_ = name.empty() ? "未命名同学" : name;
 }
 
-void Character::calcExpToNext() {
-    expToNextLevel = level * 100 + (level - 1) * 50;
+void Character::setFullData(const std::string& name, int level, int currentHp, int maxHp,
+                            int exp, int expToLevel, int gold, int attack, int defense) {
+    name_ = name.empty() ? "未命名同学" : name;
+    level_ = std::max(1, level);
+    maxHp_ = std::max(1, maxHp);
+    currentHp_ = std::clamp(currentHp, 0, maxHp_);
+    exp_ = std::max(0, exp);
+    expToLevel_ = std::max(1, expToLevel);
+    gold_ = std::max(0, gold);
+    attack_ = std::max(1, attack);
+    defense_ = std::max(0, defense);
 }
 
-std::string Character::getName() const { return name; }
-int Character::getLevel() const { return level; }
-int Character::getHp() const { return hp; }
-int Character::getMaxHp() const { return maxHp; }
-int Character::getMp() const { return mp; }
-int Character::getMaxMp() const { return maxMp; }
-int Character::getExp() const { return exp; }
-int Character::getExpToNextLevel() const { return expToNextLevel; }
-int Character::getGold() const { return gold; }
-int Character::getAttack() const { return attack; }
-int Character::getDefense() const { return defense; }
-
-int Character::dealDamage() const {
-    return std::max(1, attack + rand() % 5);
+void Character::heal(int amount) {
+    if (amount <= 0) return;
+    currentHp_ = std::min(maxHp_, currentHp_ + amount);
 }
 
-void Character::takeDamage(int damage) {
-    int actual = std::max(1, damage - defense / 3);
-    hp = std::max(0, hp - actual);
+void Character::takeDamage(int amount) {
+    if (amount <= 0) return;
+    currentHp_ = std::max(0, currentHp_ - amount);
 }
 
-bool Character::isAlive() const { return hp > 0; }
-
-std::string Character::gainExp(int amount) {
-    if (level >= MaxLevel) {
-        exp = 0;
-        return "已达到等级上限 Lv.30";
+void Character::addExp(int amount) {
+    if (amount <= 0) return;
+    exp_ += amount;
+    std::cout << "获得经验：" << amount << "\n";
+    while (exp_ >= expToLevel_) {
+        exp_ -= expToLevel_;
+        ++level_;
+        expToLevel_ = static_cast<int>(expToLevel_ * 1.35) + 30;
+        maxHp_ += 20;
+        attack_ += 5;
+        defense_ += 3;
+        currentHp_ = maxHp_;
+        std::cout << "\n[升级提示] 等级提升到 Lv." << level_
+                  << "，生命上限 " << maxHp_
+                  << "，攻击力 " << attack_
+                  << "，防御力 " << defense_
+                  << "，生命值已回满。\n";
     }
-    exp += amount;
-    std::ostringstream oss;
-    oss << "+" << amount << " EXP";
-    int levelUps = 0;
-    while (exp >= expToNextLevel && level < MaxLevel) {
-        exp -= expToNextLevel;
-        levelUps++;
-        level++;
-        attack += 3;
-        defense += 2;
-        maxHp += 15;
-        maxMp += 8;
-        hp = maxHp;
-        mp = maxMp;
-        calcExpToNext();
-    }
-    if (level >= MaxLevel) {
-        exp = 0;
-        calcExpToNext();
-    }
-    if (levelUps > 0) {
-        oss << " | 升级! Lv." << level
-            << " (ATK+" << levelUps * 3
-            << " DEF+" << levelUps * 2
-            << " HP+" << levelUps * 15 << ")";
-    }
-    return oss.str();
 }
 
-std::string Character::levelUp() {
-    return gainExp(expToNextLevel - exp);
-}
-
-void Character::addGold(int amount) { gold += amount; }
 bool Character::spendGold(int amount) {
-    if (gold >= amount) { gold -= amount; return true; }
-    return false;
-}
-
-void Character::setState(const std::string& newName, int newLevel, int newHp, int newMaxHp,
-                         int newMp, int newMaxMp, int newExp, int newGold,
-                         int newAttack, int newDefense) {
-    name = newName;
-    level = newLevel;
-    maxHp = std::max(1, newMaxHp);
-    hp = std::clamp(newHp, 0, maxHp);
-    maxMp = std::max(1, newMaxMp);
-    mp = std::clamp(newMp, 0, maxMp);
-    exp = std::max(0, newExp);
-    gold = std::max(0, newGold);
-    attack = std::max(1, newAttack);
-    defense = std::max(0, newDefense);
-    calcExpToNext();
-}
-
-bool Character::addItem(std::shared_ptr<Item> item) {
-    if (isInventoryFull()) return false;
-    inventory.push_back(item);
+    if (amount < 0 || gold_ < amount) return false;
+    gold_ -= amount;
     return true;
 }
 
-std::string Character::useItem(int index) {
-    if (index < 0 || index >= (int)inventory.size()) return "无效物品";
-    auto& item = inventory[index];
-    std::string result = item->getName() + ": " + item->use(*this);
-    inventory.erase(inventory.begin() + index);
-    return result;
+void Character::addGold(int amount) {
+    if (amount > 0) gold_ += amount;
 }
 
-std::string Character::removeItem(int index) {
-    if (index < 0 || index >= (int)inventory.size()) return "无效物品";
-    std::string n = inventory[index]->getName();
-    inventory.erase(inventory.begin() + index);
-    return "丢弃了 " + n;
+void Character::addAttack(int amount) {
+    attack_ = std::max(1, attack_ + amount);
 }
 
-std::vector<std::shared_ptr<Item>>& Character::getInventory() { return inventory; }
-int Character::inventoryCount() const { return (int)inventory.size(); }
-bool Character::isInventoryFull() const { return inventoryCount() >= MaxInventorySlots; }
-void Character::clearInventory() { inventory.clear(); }
+void Character::addDefense(int amount) {
+    defense_ = std::max(0, defense_ + amount);
+}
 
-void Character::heal(int amount) { hp = std::min(maxHp, hp + amount); }
-void Character::restoreMana(int amount) { mp = std::min(maxMp, mp + amount); }
-void Character::buffAttack(int amount) { attack += amount; }
-void Character::buffDefense(int amount) { defense += amount; }
+bool Character::addItem(const std::shared_ptr<Item>& item) {
+    if (!item || isInventoryFull()) return false;
+    inventory_.push_back(item);
+    return true;
+}
+
+std::shared_ptr<Item> Character::getItem(int index) const {
+    if (index < 0 || index >= static_cast<int>(inventory_.size())) return nullptr;
+    return inventory_[index];
+}
+
+std::shared_ptr<Item> Character::removeItem(int index) {
+    if (index < 0 || index >= static_cast<int>(inventory_.size())) return nullptr;
+    auto item = inventory_[index];
+    inventory_.erase(inventory_.begin() + index);
+    return item;
+}
+
+const std::vector<std::shared_ptr<Item>>& Character::getInventory() const {
+    return inventory_;
+}
+
+std::string Character::info() const {
+    std::ostringstream out;
+    out << "================ 角色信息 ================\n";
+    out << "姓名：" << name_ << "\n";
+    out << "等级：Lv." << level_ << "\n";
+    out << "生命：" << currentHp_ << "/" << maxHp_ << "\n";
+    out << "经验：" << exp_ << "/" << expToLevel_ << "\n";
+    out << "金币：" << gold_ << "\n";
+    out << "攻击力：" << attack_ << "\n";
+    out << "防御力：" << defense_ << "\n";
+    out << "背包：" << inventory_.size() << "/" << kInventoryLimit << "\n";
+    out << "==========================================\n";
+    return out.str();
+}

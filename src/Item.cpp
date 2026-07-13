@@ -1,23 +1,11 @@
+// Item.cpp
+// 物品基类实现：保存所有商品共有字段。
 #include "Item.h"
-#include <sstream>
 
-Item::Item(const std::string& n, const std::string& t, int p, const std::string& d)
-    : name(n), type(t), price(p), description(d) {}
+Item::Item(std::string name, std::string type, int price, std::string description)
+    : name_(std::move(name)), type_(std::move(type)), price_(price), description_(std::move(description)) {}
 
-std::string Item::getInfo() const {
-    std::ostringstream oss;
-    oss << "[" << type << "] " << name << " - " << description
-        << " (" << price << "G)";
-    return oss.str();
-}
-
-std::string Item::useInBattle(Character& character, Enemy*) {
-    return use(character);
-}
-
-std::string Item::getSaveId() const { return name; }
-
-std::string Item::getName() const { return name; }
-std::string Item::getType() const { return type; }
-int Item::getPrice() const { return price; }
-std::string Item::getDesc() const { return description; }
+const std::string& Item::getName() const { return name_; }
+const std::string& Item::getType() const { return type_; }
+int Item::getPrice() const { return price_; }
+const std::string& Item::getDescription() const { return description_; }

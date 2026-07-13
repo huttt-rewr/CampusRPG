@@ -1,19 +1,34 @@
+// Food.cpp
+// 食物类实现：非战斗回复固定生命，满血或战斗中使用会失败。
 #include "Food.h"
 #include "Character.h"
 #include <sstream>
 
-Food::Food(const std::string& n, int p, const std::string& d, int h)
-    : Item(n, "食物", p, d), healAmount(h) {}
+Food::Food(std::string name, int price, std::string description, int healAmount)
+    : Item(std::move(name), "食物", price, std::move(description)), healAmount_(healAmount) {}
 
-std::string Food::use(Character& c) {
-    c.heal(healAmount);
-    std::ostringstream oss;
-    oss << "恢复了 " << healAmount << " 点生命值!";
-    return oss.str();
+int Food::getHealAmount() const { return healAmount_; }
+bool Food::canUseInBattle() const { return false; }
+
+bool Food::use(Character& player, bool inBattle) {
+    if (inBattle) return false;
+    if (player.getCurrentHp() >= player.getMaxHp()) return false;
+    player.heal(healAmount_);
+    return true;
 }
 
-std::string Food::getInfo() const {
-    std::ostringstream oss;
-    oss << Item::getInfo() << " [恢复" << healAmount << "HP]";
-    return oss.str();
+std::string Food::effectText() const {
+    std::ostringstream out;
+    out << "非战斗使用，回复 " << healAmount_ << " 点生命";
+    return out.str();
+}
+
+std::shared_ptr<Item> Food::clone() const {
+    return std::make_shared<Food>(*this);
+}
+
+std::string Food::saveLine() const {
+    std::ostringstream out;
+    out << "Food|" << name_ << "|" << price_ << "|" << description_ << "|" << healAmount_;
+    return out.str();
 }

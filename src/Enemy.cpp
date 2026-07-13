@@ -1,82 +1,70 @@
+// Enemy.cpp
+// 敌人类实现：通过基类指针调用不同敌人的攻击逻辑，体现运行时多态。
 #include "Enemy.h"
-#include <cstdlib>
+#include "Character.h"
 #include <algorithm>
+#include <sstream>
 
-Enemy::Enemy(const std::string& n, int h, int a, int d, int er, int gr)
-    : name(n), hp(h), maxHp(h), attack(a), baseAttack(a), defense(d),
-      expReward(er), goldReward(gr), fatigueTurns(0) {}
+Enemy::Enemy(std::string name, int hp, int attack, int defense,
+             int rewardExp, int rewardGold, std::string dropItemName, int dropRate)
+    : name_(std::move(name)), maxHp_(hp), currentHp_(hp), attack_(attack), defense_(defense),
+      rewardExp_(rewardExp), rewardGold_(rewardGold), dropItemName_(std::move(dropItemName)), dropRate_(dropRate) {}
 
-int Enemy::attackPlayer() const { return attack; }
-void Enemy::takeDamage(int dmg) {
-    hp = std::max(0, hp - std::max(1, dmg - defense / 3));
-}
-bool Enemy::isAlive() const { return hp > 0; }
-int Enemy::getExpReward() const { return expReward; }
-int Enemy::getGoldReward() const { return goldReward; }
-std::string Enemy::getName() const { return name; }
-int Enemy::getHp() const { return hp; }
-int Enemy::getMaxHp() const { return maxHp; }
-int Enemy::getAttack() const { return attack; }
-int Enemy::getDefense() const { return defense; }
-void Enemy::buffAttack(int amount) { attack = std::max(1, attack + amount); }
-void Enemy::applyFatigue(int turns) { fatigueTurns = std::max(fatigueTurns, turns); }
-bool Enemy::consumeFatigueSkip() {
-    if (fatigueTurns <= 0) return false;
-    --fatigueTurns;
-    return (rand() % 100) < 50;
-}
-int Enemy::getFatigueTurns() const { return fatigueTurns; }
-void Enemy::resetBattleState() {
-    hp = maxHp;
-    attack = baseAttack;
-    fatigueTurns = 0;
+const std::string& Enemy::getName() const { return name_; }
+int Enemy::getCurrentHp() const { return currentHp_; }
+int Enemy::getMaxHp() const { return maxHp_; }
+int Enemy::getAttack() const { return attack_; }
+int Enemy::getDefense() const { return defense_; }
+int Enemy::getRewardExp() const { return rewardExp_; }
+int Enemy::getRewardGold() const { return rewardGold_; }
+const std::string& Enemy::getDropItemName() const { return dropItemName_; }
+int Enemy::getDropRate() const { return dropRate_; }
+bool Enemy::isAlive() const { return currentHp_ > 0; }
+void Enemy::takeDamage(int amount) { currentHp_ = std::max(0, currentHp_ - std::max(1, amount)); }
+void Enemy::reset() { currentHp_ = maxHp_; }
+
+std::string Enemy::info() const {
+    std::ostringstream out;
+    out << kind() << "：" << name_ << "  生命 " << maxHp_
+        << "  攻击 " << attack_ << "  防御 " << defense_
+        << "  奖励 " << rewardExp_ << "经验/" << rewardGold_ << "金币";
+    return out.str();
 }
 
-// NormalMonster
-NormalMonster::NormalMonster(const std::string& n, int h, int a, int d,
-                             int er, int gr, int ft)
-    : Enemy(n, h, a, d, er, gr), fleeThreshold(ft) {}
+NormalEnemy::NormalEnemy()
+    : Enemy("校园占座狗", 80, 16, 4, 40, 30, "校园食堂盒饭", 45) {}
 
-int NormalMonster::attackPlayer() const {
-    if (tryFlee()) return -(attack);  // negative = fleeing
-    return attack;
-}
-bool NormalMonster::tryFlee() const {
-    return (hp * 100 / maxHp) < fleeThreshold;
+int NormalEnemy::attackPlayer(Character& player, int) {
+    int damage = std::max(1, attack_ - player.getDefense());
+    player.takeDamage(damage);
+    return damage;
 }
 
-// EliteMonster
-EliteMonster::EliteMonster(const std::string& n, int h, int a, int d,
-                           int er, int gr, double cr, int ar)
-    : Enemy(n, h, a, d, er, gr), critRate(cr), armor(ar) {}
+std::string NormalEnemy::kind() const { return "普通敌人"; }
+std::unique_ptr<Enemy> NormalEnemy::clone() const { return std::make_unique<NormalEnemy>(*this); }
 
-int EliteMonster::attackPlayer() const {
-    if (isCrit()) return attack * 2;
-    return attack + armor / 2;
-}
-bool EliteMonster::isCrit() const {
-    return (rand() % 100) < (int)(critRate * 100);
+EliteEnemy::EliteEnemy()
+    : Enemy("教务处查课老师", 130, 24, 8, 90, 70, "校医院退烧药", 55) {}
+
+int EliteEnemy::attackPlayer(Character& player, int round) {
+    int rawAttack = attack_ + (round % 3 == 0 ? 10 : 0);
+    int damage = std::max(1, rawAttack - player.getDefense());
+    player.takeDamage(damage);
+    return damage;
 }
 
-// Boss
-Boss::Boss(const std::string& n, int h, int a, int d,
-           int er, int gr, const std::string& sn, int sd)
-    : Enemy(n, h, a, d, er, gr), skillName(sn), skillDamage(sd), phase(1) {}
+std::string EliteEnemy::kind() const { return "精英敌人"; }
+std::unique_ptr<Enemy> EliteEnemy::clone() const { return std::make_unique<EliteEnemy>(*this); }
 
-int Boss::attackPlayer() const {
-    if (rand() % 100 < 30 + phase * 10) return useSkill();
-    return attack + phase * 5;
+BossEnemy::BossEnemy()
+    : Enemy("期末挂科神龙", 220, 34, 12, 180, 160, "图书馆占座笔", 80) {}
+
+int BossEnemy::attackPlayer(Character& player, int round) {
+    int rawAttack = attack_ + (round % 4 == 0 ? 20 : 0);
+    int damage = std::max(1, rawAttack - player.getDefense());
+    player.takeDamage(damage);
+    return damage;
 }
-int Boss::useSkill() const { return skillDamage + phase * 10; }
-std::string Boss::getSkillName() const { return skillName; }
-void Boss::checkPhase() {
-    if (hp * 100 / maxHp < 50 && phase == 1) {
-        const_cast<Boss*>(this)->phase = 2;
-        const_cast<Boss*>(this)->attack += 10;
-    }
-}
-int Boss::getPhase() const { return phase; }
-void Boss::resetBattleState() {
-    Enemy::resetBattleState();
-    phase = 1;
-}
+
+std::string BossEnemy::kind() const { return "BOSS敌人"; }
+std::unique_ptr<Enemy> BossEnemy::clone() const { return std::make_unique<BossEnemy>(*this); }
