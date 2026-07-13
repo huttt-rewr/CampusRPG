@@ -14,6 +14,8 @@ add_executable(CampusRPG_GUI
     src/main.cpp
     src/MainWindow.cpp
     src/MainWindow.h
+    src/Profession.cpp
+    include/Profession.h
 )
 
 target_include_directories(CampusRPG_GUI PRIVATE include src)

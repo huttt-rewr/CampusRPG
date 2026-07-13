@@ -1,16 +1,25 @@
 // MainWindow.h
-// Qt 主窗口定义：提供校园 RPG 的图形化菜单界面。
+// Qt 主窗口定义：实现 4 存档、轮回 Roguelike 流程、排课、商店、地窟、编队、图鉴等界面。
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include "Profession.h"
+
 #include <QMainWindow>
+#include <QMap>
 #include <QString>
 #include <QStringList>
 #include <QVector>
+#include <memory>
+#include <vector>
 
+class QComboBox;
+class QGridLayout;
 class QLabel;
 class QListWidget;
 class QPushButton;
+class QStackedWidget;
+class QTableWidget;
 class QTabWidget;
 class QTextEdit;
 
@@ -22,99 +31,237 @@ public:
     ~MainWindow() override = default;
 
 private slots:
-    void newRole();
+    void slotClicked();
+    void createInSelectedSlot();
+    void deleteSelectedSlot();
     void saveGame();
-    void loadGame();
-    void buySelectedItem();
-    void sellSelectedItem();
-    void useSelectedItem();
-    void deleteSelectedItem();
-    void acceptSelectedTask();
-    void claimSelectedTask();
-    void fightNormalEnemy();
-    void fightEliteEnemy();
-    void fightBossEnemy();
+    void runSemester();
+    void winterRest();
+    void winterWork();
+    void enterAngelShop();
+    void buyAngelItem();
+    void buyDemonItem();
+    void sellEquipmentToDemon();
+    void useInventoryItem();
+    void discardInventoryItem();
+    void equipSelectedItem();
+    void acceptTask();
+    void claimTask();
+    void setFormationOneFront();
+    void setFormationTwoFront();
+    void moveRoleUp();
+    void moveRoleDown();
+    void enterDungeon();
+    void exploreRoom();
+    void fightOneRound();
+    void useBattleMedicine();
 
 private:
-    struct RoleData {
-        QString name = "未命名同学";
-        int level = 1;
-        int hp = 100;
-        int maxHp = 100;
-        int exp = 0;
-        int expNeed = 100;
-        int gold = 100;
-        int attack = 18;
-        int defense = 6;
-    };
+    enum class ItemType { Medicine, Food, Growth, Consumable, Equipment };
+    enum class RoomType { DemonShop, Battle, EliteBattle, Chest, Boss };
+    enum class GamePhase { SaveSelect, SchoolFirst, Winter, SchoolSecond, AngelShop, Dungeon, Ending };
 
     struct ItemData {
         QString name;
-        QString type;
+        ItemType type = ItemType::Food;
+        QString category;
         int price = 0;
-        QString desc;
-        int heal = 0;
+        int demonPrice = 0;
+        QString effect;
+        int hpRecover = 0;
+        int mpRecover = 0;
+        int staminaRecover = 0;
         int attackBonus = 0;
+        int magicBonus = 0;
         int defenseBonus = 0;
-        bool equipped = false;
+        int resistBonus = 0;
+        QString equipSlot;
         bool battleUsable = false;
+    };
+
+    struct CharacterData {
+        QString name;
+        QString profession;
+        int level = 1;
+        int exp = 0;
+        int expNeed = 100;
+        int hp = 100;
+        int maxHp = 100;
+        int mp = 50;
+        int maxMp = 50;
+        int vigor = 100;
+        int physicalAttack = 10;
+        int magicAttack = 10;
+        int physicalDefense = 5;
+        int magicResistance = 5;
+        int battleStun = 0;
+        int tauntRounds = 0;
+        QMap<QString, QString> equipment;
     };
 
     struct TaskData {
         int id = 0;
         QString name;
-        QString desc;
+        QString description;
         QString conditionType;
         QString target;
-        int need = 0;
+        int need = 1;
         int progress = 0;
         int status = 0;
-        int rewardExp = 0;
         int rewardGold = 0;
+        int rewardDemonCoin = 0;
         QString rewardItem;
     };
 
     struct EnemyData {
         QString name;
-        QString type;
-        int hp = 0;
-        int attack = 0;
-        int defense = 0;
-        int exp = 0;
-        int gold = 0;
-        QString drop;
-        int dropRate = 0;
+        QString kind;
+        int layer = 1;
+        int hp = 80;
+        int maxHp = 80;
+        int attack = 12;
+        int magicAttack = 0;
+        int defense = 4;
+        int resist = 4;
+        int exp = 20;
+        int demonCoin = 5;
+        bool elite = false;
+        bool boss = false;
+        bool backlineAttack = false;
+        int frozen = 0;
+        int slow = 0;
+        int burn = 0;
+        QString skills;
     };
 
-    void setupUi();
+    struct RoomData {
+        RoomType type = RoomType::Battle;
+        bool cleared = false;
+        QVector<EnemyData> enemies;
+    };
+
+    struct ScheduleHalfDay {
+        QString firstAction = "不上课";
+        QString extraCourse;
+        bool tutoring = false;
+    };
+
     void setupData();
+    void setupSavePage();
+    void setupGamePage();
+    void rebuildScheduleTable();
+    void connectActions();
+    void showSavePage();
+    void showGamePage();
     void refreshAll();
-    void refreshRole();
+    void refreshSaveSlots();
+    void refreshOverview();
+    void refreshSchedulePreview();
+    void refreshCharacters();
     void refreshInventory();
-    void refreshShop();
     void refreshTasks();
+    void refreshAngelShop();
+    void refreshDemonShop();
+    void refreshDungeon();
+    void refreshCodex();
     void appendLog(const QString& text);
-    void addExp(int amount);
+    void resetGameForNewRun(bool keepGrowth);
+    void createCharacter(const QString& professionName, const QString& roleName);
+    void applyProfessionStats(CharacterData& role, const Profession& profession);
+    void addExp(CharacterData& role, int amount);
     void addItem(const ItemData& item);
-    ItemData makeItemByName(const QString& name) const;
-    QString itemText(const ItemData& item) const;
+    void addTaskProgress(const QString& type, const QString& target, int amount);
+    void checkTaskCompletion();
+    void buildDungeonLayer(int layer);
+    QVector<EnemyData> makeEnemyGroup(int layer, bool elite, bool boss) const;
+    QVector<ItemData> makeLayerEquipments(int layer) const;
+    void startBattle(const QVector<EnemyData>& enemies, bool elite, bool boss);
+    void enemyTurn();
+    void endBattleIfNeeded();
+    void nextLoopAfterDeath();
+    int alivePlayerCount() const;
+    int aliveEnemyCount() const;
+    int firstAliveEnemy() const;
+    int firstAlivePlayer() const;
+    int damage(int attack, int defense, double scale) const;
+    QString itemTypeText(ItemType type) const;
+    QString phaseText() const;
     QString taskStatusText(int status) const;
-    void updateCollectTasks();
-    void updateDefeatTasks(const QString& enemyName);
-    void fightEnemy(const EnemyData& enemy);
-    QString savePath() const;
+    QString roleText(const CharacterData& role) const;
+    QString skillsText(const CharacterData& role) const;
+    QString inventoryText(const ItemData& item) const;
+    QString saveFilePath(int slot) const;
+    QString currentSaveFilePath() const;
+    void loadSlotMeta();
+    bool loadGame(int slot);
+    void writeGame(int slot);
+    void deleteGameFile(int slot);
+    ItemData itemByName(const QString& name) const;
+    Profession* professionByName(const QString& name) const;
+    QString serializeInventory() const;
+    void deserializeInventory(const QString& text);
+    QString serializeCharacters() const;
+    void deserializeCharacters(const QString& text);
+    QString serializeTasks() const;
+    void deserializeTasks(const QString& text);
+    QString serializeCodex() const;
+    void deserializeCodex(const QString& text);
 
+    QStackedWidget* stack = nullptr;
+    QWidget* savePage = nullptr;
+    QWidget* gamePage = nullptr;
+    QGridLayout* slotGrid = nullptr;
+    QLabel* saveHintLabel = nullptr;
     QTabWidget* tabs = nullptr;
-    QLabel* roleLabel = nullptr;
-    QListWidget* inventoryList = nullptr;
-    QListWidget* shopList = nullptr;
-    QListWidget* taskList = nullptr;
+    QLabel* overviewLabel = nullptr;
     QTextEdit* logText = nullptr;
+    QTableWidget* scheduleTable = nullptr;
+    QLabel* schedulePreviewLabel = nullptr;
+    QListWidget* characterList = nullptr;
+    QListWidget* inventoryList = nullptr;
+    QListWidget* taskList = nullptr;
+    QListWidget* angelShopList = nullptr;
+    QListWidget* demonShopList = nullptr;
+    QListWidget* dungeonRoomList = nullptr;
+    QListWidget* codexList = nullptr;
+    QLabel* dungeonLabel = nullptr;
+    QPushButton* fightRoundBtn = nullptr;
+    QPushButton* battleMedicineBtn = nullptr;
 
-    RoleData role;
+    int currentSlot = -1;
+    int loopCount = 1;
+    int semester = 1;
+    int week = 1;
+    int gold = 100;
+    int demonCoin = 0;
+    int initialGoldBonus = 0;
+    int initialVigorBonus = 0;
+    int workGoldBonus = 0;
+    int demonFriendBonus = 0;
+    int angelDiscount = 0;
+    int demonDiscount = 0;
+    int formationType = 1;
+    int dungeonLayer = 0;
+    int currentRoom = 0;
+    int selectedSlot = -1;
+    bool inBattle = false;
+    bool firstAngelShopBought = false;
+    bool firstDemonShopBought = false;
+    bool equippedOnce = false;
+    bool formationChanged = false;
+    GamePhase phase = GamePhase::SaveSelect;
+
+    QVector<CharacterData> party;
     QVector<ItemData> inventory;
-    QVector<ItemData> goods;
+    QVector<ItemData> angelGoods;
+    QVector<ItemData> demonGoods;
     QVector<TaskData> tasks;
+    QVector<RoomData> rooms;
+    QVector<EnemyData> battleEnemies;
+    QMap<QString, EnemyData> codex;
+    QMap<QString, bool> encountered;
+    std::vector<std::unique_ptr<Profession>> professions;
+    QMap<QString, QString> saveNames;
 };
 
 #endif

@@ -1,53 +1,61 @@
-# 校园RPG冒险游戏系统
+# 校园RPG冒险游戏
 
-2026 年 C++ 程序设计课程设计大作业，主题为《校园RPG冒险游戏系统》。当前版本为 **Qt Widgets 图形窗口版**，启动后直接显示角色、背包、商店、任务、战斗等标签页。
+2026 年 C++ 程序设计课程设计大作业。当前版本为 **Qt Widgets 窗口版校园题材轮回 Roguelike 回合制 RPG**。
 
-## 功能清单
+## 已实现功能
 
-- Qt 窗口界面：角色、背包、商店、任务、战斗五个页面。
-- 角色管理：新建角色、查看属性、升级成长、保存/读取存档。
-- 背包管理：查看、使用、删除物品，容量限制 20。
-- 物品体系：食物、药品、装备三类物品，不同效果。
-- 商店系统：查看商品、购买商品、出售背包物品，自动结算金币。
-- 任务系统：未接、已接未完成、已完成未领奖、已领奖四种状态。
-- 战斗系统：普通敌人、精英敌人、BOSS 敌人，回合制自动展示战斗日志。
-- 等级成长：经验累计、跨级升级、属性成长、升级后生命回满。
-- 存档：保存为 `release/campus_rpg_qt_save.ini`。
+- 4 个存档位：首页显示「空白存档」或角色名，已创建存档可读取或删除。
+- 6 个预设职业：学生、冰法师、圣骑士、祈福者、血战士、魔术师，职业属性和技能按需求写入。
+- 轮回主线：第一学期排课、寒假休息/打工、第二学期排课、暑假天使商店、7 层神秘地窟、团灭轮回、最终 BOSS 通关结局。
+- 排课系统：一周七天、每天上午/下午，前五天全行动，周末只允许不上课/打工/补习班；显示本周预计盈利和剩余活力。
+- 商店系统：天使商店含药品、食品、养成类；恶魔商店含消耗品、装备、恶魔之友，支持出售装备。
+- 地窟系统：前 6 层每层 7 房间，第一房间恶魔商店，包含宝箱、普通战斗、精英通道；第 7 层为恶魔商店和最终 BOSS。
+- 三对三回合制战斗：按平均等级判断先后手，敌人优先攻击前排，部分敌人可攻击后排，战斗中可用药品/消耗品。
+- 编队系统：支持「前排1后排2」和「前排2后排1」，支持调整站位。
+- 背包系统：查看、使用、丢弃、装备穿戴；食品不可战斗中使用。
+- 任务系统：查看任务、接受任务、自动检测完成、领取奖励。
+- 图鉴系统：未遇见敌人显示问号，遇见后显示属性和技能。
+- 文本存档：保存到 `release/saves/slot_*.ini`，方便调试查看。
+
+说明：需求中“地窟每层小怪、精英、装备的完整数值表”没有提供具体表格，当前代码按 7 层规则内置了可运行的分层怪物和装备配置。拿到完整表后，只需要替换 `src/MainWindow.cpp` 中 `makeEnemyGroup()` 和 `makeLayerEquipments()` 的配置。
 
 ## 文件结构
 
 ```text
-src/MainWindow.h      Qt 主窗口类定义
-src/MainWindow.cpp    Qt 主窗口、界面和玩法逻辑实现
-src/main.cpp          Qt 程序入口
+src/main.cpp           Qt 程序入口
+src/MainWindow.h       Qt 主窗口、存档、流程和界面数据结构定义
+src/MainWindow.cpp     Qt 界面、轮回、排课、商店、地窟、战斗、任务、存档实现
+include/Profession.h   职业抽象基类与技能结构
+src/Profession.cpp     六个职业派生类实现
 
-include/              课程设计类定义：角色、物品、敌人、任务、商店、管理器
-src/Character.cpp     角色类实现
-src/Item.cpp          物品基类实现
-src/Food.cpp          食物类实现
-src/Medicine.cpp      药品类实现
-src/Equipment.cpp     装备类实现
-src/Enemy.cpp         敌人类实现
-src/Task.cpp          任务类实现
-src/Shop.cpp          商店类实现
-src/GameManager.cpp   控制台版逻辑保留作课程设计类结构参考
+include/Item.h         物品抽象基类
+include/Food.h         食品派生类
+include/Medicine.h     药品派生类
+include/Equipment.h    装备派生类
+include/Enemy.h        敌人抽象基类及普通/精英/BOSS派生类
+include/Character.h    角色类
+include/Task.h         任务类
+include/Shop.h         商店类
+include/GameManager.h  控制台课程结构保留类
 
-CampusRPG.pro         qmake 构建文件
-CMakeLists.txt        CMake 构建文件
-BuildGame.cmd         Windows 一键构建脚本
-RunGame.cmd           Windows 一键启动脚本
+CampusRPG.pro          qmake 构建文件
+CMakeLists.txt         CMake 构建文件
+BuildGame.cmd          Windows 一键构建
+RunGame.cmd            Windows 一键启动
+启动游戏.bat            中文启动脚本
+构建项目.bat            中文构建脚本
 ```
 
 ## 编译运行
 
-推荐 Qt 5.15.2 + MinGW。Windows 下双击：
+推荐使用 Qt 5.15.2 + MinGW：
 
 ```bat
 BuildGame.cmd
 RunGame.cmd
 ```
 
-或手动执行：
+手动编译：
 
 ```bat
 qmake CampusRPG.pro -o Makefile
@@ -55,19 +63,17 @@ mingw32-make -j2
 release\CampusRPG_GUI.exe
 ```
 
-## STL 使用说明
+## 面向对象三大特性
 
-- `QVector`：Qt 窗口主逻辑中保存背包、商品、任务列表，适合按顺序展示到列表控件。
-- `QString` / `QStringList`：Qt 界面文本、存档字段、菜单展示文本。
-- `std::vector`：保留在课程设计类 `Character`、`Shop`、`GameManager` 中，用于背包、商品列表、任务列表、敌人模板列表。
-- `std::map`：保留在 `GameManager` 中作为物品工厂，通过物品名创建奖励和掉落物品。
-- `std::shared_ptr` / `std::unique_ptr`：用于物品和敌人基类指针，体现对象生命周期管理。
+- 封装：角色、物品、敌人、任务、职业等数据均通过类和结构统一管理，核心类成员为私有或保护成员，对外通过公共接口访问。
+- 继承：`Profession` 派生 6 个职业；`Item` 派生 `Food`、`Medicine`、`Equipment`；`Enemy` 派生普通敌人、精英敌人、BOSS 敌人。
+- 多态：`Profession::skills()`、`Profession::baseStats()`、`Item::use()`、`Enemy::attackPlayer()` 等为虚函数或纯虚函数，通过基类指针动态调用派生类逻辑。
+- 虚析构：`Profession`、`Item`、`Enemy` 均定义虚析构函数，避免通过基类指针释放时泄漏。
 
-## 面向对象体现
+## STL 容器使用说明
 
-- 封装：角色、物品、敌人、任务、商店等类属性均为 `private` 或 `protected`。
-- 继承体系一：`Item` 为物品基类，派生 `Food`、`Medicine`、`Equipment`。
-- 继承体系二：`Enemy` 为敌人基类，派生 `NormalEnemy`、`EliteEnemy`、`BossEnemy`。
-- 多态：`Item` 和 `Enemy` 定义纯虚函数，通过基类指针调用子类重写逻辑。
-- 虚析构函数：`Item` 和 `Enemy` 均定义虚析构函数。
-- 六个核心类：`Character`、`Item`、`Task`、`Enemy`、`Shop`、`GameManager` 均已实现。
+- `std::vector<std::unique_ptr<Profession>>`：保存六个职业多态对象，适合顺序遍历并保证对象生命周期安全。
+- `std::vector<SkillDef>`：每个职业返回技能表，便于按等级展示和扩展技能。
+- `std::unique_ptr`：保存职业基类指针，体现运行时多态和自动释放。
+- `std::map`：保留在控制台课程结构类中用于物品工厂映射。
+- `QVector`、`QMap`、`QStringList`：Qt 界面层保存角色、背包、任务、房间、图鉴和显示文本，便于和 Qt 控件直接交互。

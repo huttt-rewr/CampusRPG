@@ -7,9 +7,11 @@ CONFIG += c++17
 
 SOURCES += \
     src/main.cpp \
-    src/MainWindow.cpp
+    src/MainWindow.cpp \
+    src/Profession.cpp
 
 HEADERS += \
-    src/MainWindow.h
+    src/MainWindow.h \
+    include/Profession.h
 
 INCLUDEPATH += include src
