@@ -8,6 +8,7 @@
 #include <QDir>
 #include <QFile>
 #include <QGridLayout>
+#include <QHeaderView>
 #include <QInputDialog>
 #include <QLabel>
 #include <QLineEdit>
@@ -15,6 +16,7 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QRandomGenerator>
+#include <QResizeEvent>
 #include <QSettings>
 #include <QStackedWidget>
 #include <QTableWidget>
@@ -60,17 +62,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     setupSavePage();
     setupGamePage();
     connectActions();
-    setStyleSheet(
-        "QMainWindow{background:#f4f6f8;color:#202833;}"
-        "QLabel{font-size:14px;}"
-        "QPushButton{padding:8px 12px;border:1px solid #9aa8b8;border-radius:5px;background:#ffffff;}"
-        "QPushButton:hover{background:#eaf2ff;}"
-        "QPushButton:disabled{color:#9aa3ad;background:#eef1f5;}"
-        "QTabWidget::pane{border:1px solid #c9d3df;background:#ffffff;}"
-        "QTabBar::tab{padding:8px 14px;background:#e3e9f1;border:1px solid #c9d3df;}"
-        "QTabBar::tab:selected{background:#ffffff;font-weight:600;}"
-        "QListWidget,QTextEdit,QTableWidget{background:#ffffff;border:1px solid #c9d3df;border-radius:5px;padding:5px;}"
-    );
+    updateUiScale();
     loadSlotMeta();
     showSavePage();
 }
@@ -126,13 +118,12 @@ void MainWindow::setupData() {
 void MainWindow::setupSavePage() {
     savePage = new QWidget(this);
     auto* layout = new QVBoxLayout(savePage);
-    auto* title = new QLabel("校园RPG冒险游戏\n选择存档开始轮回", savePage);
-    title->setAlignment(Qt::AlignCenter);
-    title->setStyleSheet("font-size:28px;font-weight:700;padding:18px;");
+    saveTitleLabel = new QLabel("校园RPG冒险游戏\n选择存档开始轮回", savePage);
+    saveTitleLabel->setAlignment(Qt::AlignCenter);
     saveHintLabel = new QLabel("总共 4 个存档位。空白存档可创建角色，已有存档可读取或删除。", savePage);
     saveHintLabel->setAlignment(Qt::AlignCenter);
     slotGrid = new QGridLayout();
-    layout->addWidget(title);
+    layout->addWidget(saveTitleLabel);
     layout->addWidget(saveHintLabel);
     layout->addLayout(slotGrid);
     layout->addStretch();
@@ -273,6 +264,51 @@ void MainWindow::setupGamePage() {
     stack->addWidget(gamePage);
 }
 
+void MainWindow::resizeEvent(QResizeEvent* event) {
+    QMainWindow::resizeEvent(event);
+    updateUiScale();
+}
+
+void MainWindow::updateUiScale() {
+    int base = std::max(12, std::min(width() / 78, height() / 52));
+    int buttonFont = std::max(13, base + 1);
+    int titleFont = std::max(24, base * 2);
+    int tabFont = std::max(13, base);
+    int listFont = std::max(12, base);
+    int padY = std::max(7, base / 2);
+    int padX = std::max(12, base);
+    int radius = std::max(5, base / 3);
+
+    setStyleSheet(QString(
+        "QMainWindow{background:#f4f6f8;color:#202833;}"
+        "QLabel{font-size:%1px;line-height:1.35;}"
+        "QPushButton{font-size:%2px;padding:%3px %4px;border:1px solid #9aa8b8;border-radius:%5px;background:#ffffff;}"
+        "QPushButton:hover{background:#eaf2ff;}"
+        "QPushButton:disabled{color:#9aa3ad;background:#eef1f5;}"
+        "QTabWidget::pane{border:1px solid #c9d3df;background:#ffffff;}"
+        "QTabBar::tab{font-size:%6px;padding:%3px %4px;background:#e3e9f1;border:1px solid #c9d3df;}"
+        "QTabBar::tab:selected{background:#ffffff;font-weight:600;}"
+        "QListWidget,QTextEdit,QTableWidget,QComboBox{font-size:%7px;background:#ffffff;border:1px solid #c9d3df;border-radius:%5px;padding:%8px;}"
+        "QHeaderView::section{font-size:%7px;padding:%8px;background:#edf1f6;border:1px solid #c9d3df;}"
+    ).arg(base).arg(buttonFont).arg(padY).arg(padX).arg(radius).arg(tabFont).arg(listFont).arg(std::max(5, base / 3)));
+
+    if (saveTitleLabel) {
+        saveTitleLabel->setStyleSheet(QString("font-size:%1px;font-weight:700;padding:%2px;").arg(titleFont).arg(std::max(16, base)));
+    }
+    if (slotGrid) {
+        for (int i = 0; i < slotGrid->count(); ++i) {
+            auto* btn = qobject_cast<QPushButton*>(slotGrid->itemAt(i)->widget());
+            if (!btn) continue;
+            btn->setMinimumHeight(std::max(110, height() / 7));
+            btn->setStyleSheet(QString("font-size:%1px;text-align:center;").arg(std::max(16, base + 4)));
+        }
+    }
+    if (scheduleTable) {
+        scheduleTable->verticalHeader()->setDefaultSectionSize(std::max(42, base * 3));
+        scheduleTable->horizontalHeader()->setDefaultSectionSize(std::max(120, width() / 5));
+    }
+}
+
 void MainWindow::rebuildScheduleTable() {
     for (int day = 0; day < kDays; ++day) {
         for (int half = 0; half < kHalfDays; ++half) {
@@ -320,12 +356,11 @@ void MainWindow::refreshSaveSlots() {
     for (int i = 1; i <= kSlotCount; ++i) {
         QString label = saveNames.value(QString::number(i), "空白存档");
         auto* btn = new QPushButton(QString("存档%1\n%2").arg(i).arg(label), savePage);
-        btn->setMinimumHeight(110);
         btn->setProperty("slot", i);
-        btn->setStyleSheet("font-size:18px;text-align:center;");
         connect(btn, &QPushButton::clicked, this, &MainWindow::slotClicked);
         slotGrid->addWidget(btn, (i - 1) / 2, (i - 1) % 2);
     }
+    updateUiScale();
 }
 
 void MainWindow::refreshOverview() {

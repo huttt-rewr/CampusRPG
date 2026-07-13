@@ -30,6 +30,9 @@ public:
     explicit MainWindow(QWidget* parent = nullptr);
     ~MainWindow() override = default;
 
+protected:
+    void resizeEvent(QResizeEvent* event) override;
+
 private slots:
     void slotClicked();
     void createInSelectedSlot();
@@ -149,6 +152,7 @@ private:
     void setupData();
     void setupSavePage();
     void setupGamePage();
+    void updateUiScale();
     void rebuildScheduleTable();
     void connectActions();
     void showSavePage();
@@ -211,6 +215,7 @@ private:
     QWidget* savePage = nullptr;
     QWidget* gamePage = nullptr;
     QGridLayout* slotGrid = nullptr;
+    QLabel* saveTitleLabel = nullptr;
     QLabel* saveHintLabel = nullptr;
     QTabWidget* tabs = nullptr;
     QLabel* overviewLabel = nullptr;
