@@ -14,6 +14,9 @@
 #include <memory>
 #include <vector>
 
+class QGraphicsPixmapItem;
+class QGraphicsScene;
+class QGraphicsView;
 class QGridLayout;
 class QComboBox;
 class QLabel;
@@ -179,6 +182,7 @@ private:
     void refreshAngelShop();
     void refreshDemonShop();
     void refreshDungeon();
+    void refreshBattleScene();
     void refreshCodex();
     void appendLog(const QString& text);
     void resetGameForNewRun(bool keepGrowth);
@@ -218,6 +222,10 @@ private:
     void applyItemEffect(CharacterData& role, const ItemData& item);
     void applyEquipmentStats(CharacterData& role, const ItemData& item, int sign);
     void updateVisualPreviews();
+    void shakeBattleActors();
+    QString professionSprite(const QString& professionName) const;
+    QString enemySprite(const QString& enemyName) const;
+    QString dungeonScene(int layer) const;
     QString saveFilePath(int slot) const;
     QString currentSaveFilePath() const;
     void loadSlotMeta();
@@ -267,8 +275,12 @@ private:
     QLabel* dungeonLabel = nullptr;
     QLabel* dungeonSceneLabel = nullptr;
     QLabel* dungeonPreviewLabel = nullptr;
+    QGraphicsView* battleView = nullptr;
+    QGraphicsScene* battleScene = nullptr;
     QPushButton* fightRoundBtn = nullptr;
     QPushButton* battleMedicineBtn = nullptr;
+    QVector<QGraphicsPixmapItem*> battleActors;
+    QVector<QPointF> battleActorOrigins;
 
     int currentSlot = -1;
     int loopCount = 1;

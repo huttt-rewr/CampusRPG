@@ -6,8 +6,13 @@
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QGraphicsOpacityEffect>
+#include <QGraphicsPixmapItem>
+#include <QGraphicsScene>
+#include <QGraphicsTextItem>
+#include <QGraphicsView>
 #include <QDir>
 #include <QFile>
+#include <QFrame>
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QHeaderView>
@@ -17,9 +22,13 @@
 #include <QLineEdit>
 #include <QListWidget>
 #include <QMessageBox>
+#include <QPainter>
 #include <QPixmap>
+#include <QParallelAnimationGroup>
 #include <QPropertyAnimation>
 #include <QPushButton>
+#include <QSequentialAnimationGroup>
+#include <QTimer>
 #include <QRandomGenerator>
 #include <QResizeEvent>
 #include <QSettings>
@@ -63,21 +72,16 @@ int actionGoldChange(const QString& action, int workBonus) {
 
 QString assetRoot() {
     const QString exeDir = QCoreApplication::applicationDirPath();
-    // Try all possible asset locations, checking for a known file
     const QStringList roots = {
-        exeDir + "/assets/",
         exeDir + "/../assets/",
-        QDir::currentPath() + "/assets/",
+        exeDir + "/assets/",
         QDir::currentPath() + "/../assets/",
+        QDir::currentPath() + "/assets/"
     };
     for (const QString& root : roots) {
-        // Check with a file we know exists in assets/
-        if (QFile::exists(root + "sprites/student.png") || QFile::exists(root + "scenes/classroom_dusk.jpg")) {
-            return root;
-        }
+        if (QDir(root).exists()) return root;
     }
-    // Last resort: return the most likely path
-    return exeDir + "/assets/";
+    return roots.first();
 }
 
 QString existingAsset(const QStringList& candidates) {
@@ -131,13 +135,13 @@ QString enemySpritePath(const QString& name) {
 QString fallbackEnemySpritePath(int layer) {
     const QString base = assetRoot() + "sprites/";
     switch (std::max(1, layer)) {
-    case 1: return existingAsset({base + "gym_sprinter.png"});
-    case 2: return existingAsset({base + "library_scribble_spirit.png"});
-    case 3: return existingAsset({base + "theater_clown.png"});
-    case 4: return existingAsset({base + "lab_beaker.png"});
-    case 5: return existingAsset({base + "divination_tarot.png"});
-    case 6: return existingAsset({base + "office_iron_hand.png"});
-    default: return existingAsset({base + "boss_principal.png"});
+    case 1: return existingAsset({base + "gym_sprinter.png", base + QString::fromUtf8("懈怠的短跑者.jpg")});
+    case 2: return existingAsset({base + "library_scribble_spirit.png", base + QString::fromUtf8("涂鸦书灵.jpg")});
+    case 3: return existingAsset({base + "theater_clown.png", base + QString::fromUtf8("微笑小丑.jpg")});
+    case 4: return existingAsset({base + "lab_beaker.png", base + QString::fromUtf8("爆炸烧杯怪.jpg")});
+    case 5: return existingAsset({base + "divination_tarot.png", base + QString::fromUtf8("塔罗士兵.jpg")});
+    case 6: return existingAsset({base + "office_iron_hand.png", base + QString::fromUtf8("教导处铁腕.jpg")});
+    default: return existingAsset({base + "boss_principal.png", base + QString::fromUtf8("伪典校长·零.jpg")});
     }
 }
 
@@ -167,6 +171,77 @@ QString phaseScenePath(int phaseValue) {
     default: return base + "classroom_dusk.jpg";
     }
 }
+
+const QMap<QString, QString>& professionSprites() {
+    static const QMap<QString, QString> sprites = {
+        {"学生", ":/assets/assets/sprites/student.png"},
+        {"冰法师", ":/assets/assets/sprites/ice_mage.png"},
+        {"圣骑士", ":/assets/assets/sprites/paladin.png"},
+        {"祈福者", ":/assets/assets/sprites/blesser.png"},
+        {"血战士", ":/assets/assets/sprites/blood_warrior.png"},
+        {"魔术师", ":/assets/assets/sprites/magician.png"},
+    };
+    return sprites;
+}
+
+const QMap<QString, QString>& enemySprites() {
+    static const QMap<QString, QString> sprites = {
+        // 第1层 - 废弃体育馆
+        {"懈怠的短跑者A", ":/assets/assets/sprites/gym_sprinter.png"},
+        {"懈怠的短跑者B", ":/assets/assets/sprites/gym_sprinter.png"},
+        {"驼背的铅球手", ":/assets/assets/sprites/gym_shot_putter.png"},
+        {"体操幽灵", ":/assets/assets/sprites/gym_gymnast.png"},
+        // 第2层 - 倒悬图书馆
+        {"目录魔像", ":/assets/assets/sprites/library_catalog_golem.png"},
+        {"涂鸦书灵A", ":/assets/assets/sprites/library_scribble_spirit.png"},
+        {"涂鸦书灵B", ":/assets/assets/sprites/library_scribble_spirit.png"},
+        {"禁书管理员", ":/assets/assets/sprites/library_banned_librarian.png"},
+        // 第3层 - 镜面戏剧社
+        {"微笑小丑", ":/assets/assets/sprites/theater_clown.png"},
+        {"镜面侍从A", ":/assets/assets/sprites/theater_mirror_attendant.png"},
+        {"镜面侍从B", ":/assets/assets/sprites/theater_mirror_attendant.png"},
+        {"悲情女主角", ":/assets/assets/sprites/theater_tragedy.png"},
+        // 第4层 - 失序化学实验室
+        {"酸液史莱姆A", ":/assets/assets/sprites/lab_acid_slime.png"},
+        {"酸液史莱姆B", ":/assets/assets/sprites/lab_acid_slime.png"},
+        {"爆炸烧杯怪", ":/assets/assets/sprites/lab_beaker.png"},
+        {"剧毒试管精", ":/assets/assets/sprites/lab_tube.png"},
+        // 第5层 - 占卜社旧址
+        {"塔罗士兵A", ":/assets/assets/sprites/divination_tarot.png"},
+        {"塔罗士兵B", ":/assets/assets/sprites/divination_tarot.png"},
+        {"时针幽灵", ":/assets/assets/sprites/divination_clock_ghost.png"},
+        {"命运轮盘", ":/assets/assets/sprites/divination_tarot.png"},
+        // 第6层 - 校长室前厅
+        {"教导处铁腕·左", ":/assets/assets/sprites/office_iron_hand.png"},
+        {"教导处铁腕·右", ":/assets/assets/sprites/office_iron_hand.png"},
+        {"纪律巡查使A", ":/assets/assets/sprites/office_discipline_inspector.png"},
+        {"纪律巡查使B", ":/assets/assets/sprites/office_discipline_inspector.png"},
+        // 精英敌人
+        {"折翼的百米王者", ":/assets/assets/sprites/elite_winged_runner.png"},
+        {"扉页守护者", ":/assets/assets/sprites/elite_book_guardian.png"},
+        {"无面舞者", ":/assets/assets/sprites/elite_faceless_dancer.png"},
+        {"畸变融合体", ":/assets/assets/sprites/elite_mutant.png"},
+        {"时计塔的囚徒", ":/assets/assets/sprites/elite_clock_prisoner.png"},
+        {"铁锈执念·陈暮", ":/assets/assets/sprites/elite_rust_regret.png"},
+        // 最终BOSS
+        {"伪典校长·零", ":/assets/assets/sprites/boss_principal.png"},
+    };
+    return sprites;
+}
+
+const QMap<int, QString>& dungeonScenes() {
+    static const QMap<int, QString> scenes = {
+        {1, ":/assets/assets/scenes/gym.jpg"},
+        {2, ":/assets/assets/scenes/library.jpg"},
+        {3, ":/assets/assets/scenes/classroom_dusk.jpg"},
+        {4, ":/assets/assets/scenes/abandoned_classroom.jpg"},
+        {5, ":/assets/assets/scenes/equipment_room.jpg"},
+        {6, ":/assets/assets/scenes/corridor.jpg"},
+        {7, ":/assets/assets/scenes/corridor.jpg"},
+    };
+    return scenes;
+}
+
 }
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
@@ -496,14 +571,14 @@ void MainWindow::setupGamePage() {
     dungeonLayout->setSpacing(10);
     dungeonLabel = new QLabel(dungeonPage);
     dungeonLabel->setWordWrap(true);
-    dungeonSceneLabel = new QLabel(dungeonPage);
-    dungeonSceneLabel->setAlignment(Qt::AlignCenter);
-    dungeonSceneLabel->setMinimumHeight(220);
-    dungeonSceneLabel->setStyleSheet("background:#111a2b;color:#f4ddb1;border:2px solid #b69755;border-radius:10px;");
-    dungeonPreviewLabel = new QLabel(dungeonPage);
-    dungeonPreviewLabel->setAlignment(Qt::AlignCenter);
-    dungeonPreviewLabel->setMinimumHeight(220);
-    dungeonPreviewLabel->setStyleSheet("background:#111a2b;color:#f4ddb1;border:2px solid #b69755;border-radius:10px;");
+    battleView = new QGraphicsView(dungeonPage);
+    battleScene = new QGraphicsScene(this);
+    battleView->setScene(battleScene);
+    battleView->setMinimumSize(620, 400);
+    battleView->setFrameShape(QFrame::NoFrame);
+    battleView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    battleView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    battleView->setRenderHint(QPainter::SmoothPixmapTransform);
     dungeonRoomList = new QListWidget(dungeonPage);
     dungeonRoomList->setVisible(false);
     auto* mapHost = new QWidget(dungeonPage);
@@ -528,9 +603,8 @@ void MainWindow::setupGamePage() {
     decorateAction(sellDemonBtn, QStyle::SP_DialogSaveButton);
     decorateAction(fightRoundBtn, QStyle::SP_MediaPlay, true);
     decorateAction(battleMedicineBtn, QStyle::SP_DialogApplyButton);
-    auto* dungeonVisuals = new QHBoxLayout();
-    dungeonVisuals->addWidget(dungeonSceneLabel, 3);
-    dungeonVisuals->addWidget(dungeonPreviewLabel, 2);
+    auto* battlefieldLayout = new QVBoxLayout();
+    battlefieldLayout->addWidget(battleView, 1);
 
     auto* mapBox = new QGroupBox("地窟路线", dungeonPage);
     auto* mapLayout = new QVBoxLayout(mapBox);
@@ -571,7 +645,7 @@ void MainWindow::setupGamePage() {
     lowerSplit->setStretchFactor(1, 2);
     lowerSplit->setStretchFactor(2, 2);
     dungeonLayout->addWidget(dungeonLabel);
-    dungeonLayout->addLayout(dungeonVisuals);
+    dungeonLayout->addLayout(battlefieldLayout, 1);
     dungeonLayout->addWidget(lowerSplit, 1);
     dungeonLayout->addWidget(dungeonRoomList);
     exploreBtn->setVisible(false);
@@ -962,6 +1036,149 @@ void MainWindow::refreshDungeon() {
             if (battleTargetList->count() > 0) battleTargetList->setCurrentRow(0);
         }
     }
+    refreshBattleScene();
+}
+
+QString MainWindow::professionSprite(const QString& professionName) const {
+    return professionSpritePath(professionName);
+}
+
+QString MainWindow::enemySprite(const QString& enemyName) const {
+    QString path = enemySpritePath(enemyName);
+    if (path.isEmpty()) path = fallbackEnemySpritePath(dungeonLayer);
+    return path;
+}
+
+QString MainWindow::dungeonScene(int layer) const {
+    return scenePath(true, layer);
+}
+
+void MainWindow::refreshBattleScene() {
+    if (!battleScene || !battleView) return;
+
+    constexpr int sceneWidth = 960;
+    constexpr int sceneHeight = 520;
+    battleScene->clear();
+    battleActors.clear();
+    battleActorOrigins.clear();
+    battleScene->setSceneRect(0, 0, sceneWidth, sceneHeight);
+
+    QPixmap background(dungeonScene(dungeonLayer));
+    if (!background.isNull()) {
+        battleScene->addPixmap(background.scaled(sceneWidth, sceneHeight, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
+    } else {
+        battleScene->addRect(0, 0, sceneWidth, sceneHeight, Qt::NoPen, QBrush(QColor("#24333b")));
+    }
+    battleScene->addRect(0, 0, sceneWidth, sceneHeight, Qt::NoPen, QBrush(QColor(7, 19, 24, 86)));
+
+    auto* title = battleScene->addText(dungeonLayer > 0 ? QString("第 %1 层  %2").arg(dungeonLayer).arg(inBattle ? "战斗中" : "地窟探索") : "神秘地窟");
+    title->setDefaultTextColor(Qt::white);
+    QFont titleFont = title->font();
+    titleFont.setPointSize(15);
+    titleFont.setBold(true);
+    title->setFont(titleFont);
+    title->setPos(18, 14);
+
+    auto addActor = [this](const QString& name, const QString& resource, int hp, int maxHp, const QPointF& center, bool player) {
+        const QSize spriteBounds(player ? 120 : 130, player ? 155 : 165);
+        QPixmap sprite(resource);
+        if (!sprite.isNull()) {
+            sprite = sprite.scaled(spriteBounds, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+            auto* actor = battleScene->addPixmap(sprite);
+            const QPointF actorPos(center.x() - sprite.width() / 2, center.y() - sprite.height() / 2 - 8);
+            actor->setPos(actorPos);
+            if (hp <= 0) actor->setOpacity(0.32);
+            battleActors.append(actor);
+            battleActorOrigins.append(actorPos);
+        }
+
+        constexpr int barWidth = 100;
+        constexpr int barHeight = 10;
+        const int barX = int(center.x()) - barWidth / 2;
+        const int barY = int(center.y()) + 80;
+        battleScene->addRect(barX - 2, barY - 16, barWidth + 4, 32, Qt::NoPen, QBrush(QColor(4, 12, 16, 178)));
+        auto* label = battleScene->addText(name);
+        label->setDefaultTextColor(Qt::white);
+        QFont labelFont = label->font();
+        labelFont.setPointSize(8);
+        labelFont.setBold(true);
+        label->setFont(labelFont);
+        label->setPos(barX + 4, barY - 17);
+        battleScene->addRect(barX, barY, barWidth, barHeight, Qt::NoPen, QBrush(QColor("#451f2a")));
+        const int filled = maxHp > 0 ? barWidth * std::max(0, hp) / maxHp : 0;
+        battleScene->addRect(barX, barY, filled, barHeight, Qt::NoPen, QBrush(player ? QColor("#38b7a7") : QColor("#e15d63")));
+        auto* hpText = battleScene->addText(QString("%1 / %2").arg(std::max(0, hp)).arg(maxHp));
+        hpText->setDefaultTextColor(Qt::white);
+        QFont hpFont = hpText->font();
+        hpFont.setPointSize(7);
+        hpText->setFont(hpFont);
+        hpText->setPos(barX + barWidth + 5, barY - 3);
+    };
+
+    const int frontCount = formationType == 1 ? 1 : 2;
+    const QVector<QPointF> frontPlayerPositions = {{290, 270}, {290, 430}};
+    const QVector<QPointF> rearPlayerPositions = {{140, 170}, {140, 360}};
+    int frontIndex = 0;
+    int rearIndex = 0;
+    for (int i = 0; i < party.size(); ++i) {
+        if (!party[i].active) continue;
+        const bool front = i < frontCount;
+        QPointF position = front
+            ? frontPlayerPositions.value(frontIndex++, QPointF(290, 270))
+            : rearPlayerPositions.value(rearIndex++, QPointF(140, 270));
+        addActor(party[i].name, professionSprite(party[i].profession), party[i].hp, party[i].maxHp, position, true);
+    }
+
+    if (inBattle && !battleEnemies.isEmpty()) {
+        if (battleEnemies.size() == 1) {
+            const auto& enemy = battleEnemies.first();
+            addActor(enemy.name, enemySprite(enemy.name), enemy.hp, enemy.maxHp, QPointF(760, 280), false);
+        } else {
+            const QVector<QPointF> enemyPositions = {{690, 270}, {850, 170}, {850, 390}};
+            for (int i = 0; i < battleEnemies.size(); ++i) {
+                const auto& enemy = battleEnemies[i];
+                addActor(enemy.name, enemySprite(enemy.name), enemy.hp, enemy.maxHp, enemyPositions.value(i, QPointF(850, 280)), false);
+            }
+        }
+    } else {
+        auto* hint = battleScene->addText("选择右侧房间后开始探索");
+        hint->setDefaultTextColor(QColor("#edf8f7"));
+        QFont hintFont = hint->font();
+        hintFont.setPointSize(14);
+        hint->setFont(hintFont);
+        hint->setPos(610, 245);
+    }
+    battleView->fitInView(battleScene->sceneRect(), Qt::KeepAspectRatio);
+}
+
+void MainWindow::shakeBattleActors() {
+    if (battleActors.isEmpty()) return;
+    const QVector<qreal> amplitudes = {
+        -6, 6, -5, 5, -4, 4, -3, 3, -2, 2, -1, 1, 0,
+        0, 0
+    };
+    const int stepMs = 20;
+    auto* timer = new QTimer(this);
+    auto* step = new int(0);
+    connect(timer, &QTimer::timeout, this, [this, timer, step, amplitudes]() {
+        if (*step >= amplitudes.size()) {
+            timer->stop();
+            timer->deleteLater();
+            delete step;
+            for (int i = 0; i < battleActors.size(); ++i) {
+                if (battleActors[i]) battleActors[i]->setPos(battleActorOrigins[i]);
+            }
+            return;
+        }
+        const qreal dx = amplitudes[*step];
+        for (int i = 0; i < battleActors.size(); ++i) {
+            if (!battleActors[i] || i >= battleActorOrigins.size()) continue;
+            const QPointF& o = battleActorOrigins[i];
+            battleActors[i]->setPos(o.x() + dx, o.y());
+        }
+        ++(*step);
+    });
+    timer->start(stepMs);
 }
 
 void MainWindow::refreshCodex() {
@@ -1036,19 +1253,6 @@ void MainWindow::updateVisualPreviews() {
         }
     }
 
-    if (dungeonSceneLabel) {
-        const QPixmap dungeonScene(scenePath(true, dungeonLayer));
-        if (dungeonScene.isNull()) {
-            dungeonSceneLabel->setPixmap(QPixmap());
-            dungeonSceneLabel->setText(QString::fromUtf8("当前层场景图暂不可用"));
-        } else {
-            dungeonSceneLabel->setText(QString());
-            dungeonSceneLabel->setPixmap(dungeonScene.scaled(dungeonSceneLabel->size(), Qt::KeepAspectRatioByExpanding,
-                Qt::SmoothTransformation));
-            animatePreview(dungeonSceneLabel);
-        }
-    }
-
     if (characterPreviewLabel) {
         const int row = characterList ? characterList->currentRow() : -1;
         const QString path = row >= 0 && row < party.size() ? professionSpritePath(party[row].profession) : QString();
@@ -1064,27 +1268,6 @@ void MainWindow::updateVisualPreviews() {
         }
     }
 
-    if (dungeonPreviewLabel) {
-        QString name;
-        if (inBattle && !battleEnemies.isEmpty()) {
-            name = battleEnemies.first().name;
-        } else {
-            const int row = dungeonRoomList ? dungeonRoomList->currentRow() : -1;
-            if (row >= 0 && row < rooms.size() && !rooms[row].enemies.isEmpty()) name = rooms[row].enemies.first().name;
-        }
-        QString path = enemySpritePath(name);
-        if (path.isEmpty()) path = fallbackEnemySpritePath(dungeonLayer);
-        const QPixmap sprite(path);
-        if (sprite.isNull()) {
-            dungeonPreviewLabel->setPixmap(QPixmap());
-            dungeonPreviewLabel->setText(QString::fromUtf8("当前层敌方模型暂不可用"));
-        } else {
-            dungeonPreviewLabel->setText(QString());
-            dungeonPreviewLabel->setPixmap(sprite.scaled(dungeonPreviewLabel->size(), Qt::KeepAspectRatio,
-                Qt::SmoothTransformation));
-            animatePreview(dungeonPreviewLabel);
-        }
-    }
 }
 
 void MainWindow::slotClicked() {
@@ -1849,8 +2032,8 @@ QVector<MainWindow::EnemyData> MainWindow::makeEnemyGroup(int layer, bool elite,
     switch (layer) {
     case 1:
         return {
-            {"懈怠的短跑者A", "小怪·前排", 1, 120, 120, 24, 0, 10, 8, 45, 8, false, false, false, 0, 0, 0, "冲刺突袭：单体1.5倍伤害，降攻20%"},
-            {"懈怠的短跑者B", "小怪·后排", 1, 95, 95, 22, 0, 8, 8, 40, 8, false, false, false, 0, 0, 0, "冲刺突袭：单体1.5倍伤害，降攻20%"},
+            {"微笑小丑", "小怪·前排", 1, 120, 120, 24, 0, 10, 8, 45, 8, false, false, false, 0, 0, 0, "来笑一个：嘲讽并提高防御"},
+            {"爆炸烧杯怪", "小怪·后排", 1, 95, 95, 0, 26, 8, 8, 40, 8, false, false, false, 0, 0, 0, "不稳定化合物：远程法术伤害"},
             {"驼背的铅球手", "小怪·后排", 1, 145, 145, 28, 0, 14, 8, 55, 10, false, false, false, 0, 0, 0, "蓄力投掷：防御后全体大量伤害"},
             {"体操幽灵", "辅助·后排", 1, 80, 80, 0, 0, 6, 12, 35, 8, false, false, false, 0, 0, 0, "鼓励：给攻击最高队友攻击+20%"}
         };
@@ -1962,6 +2145,7 @@ void MainWindow::startBattle(const QVector<EnemyData>& enemies, bool elite, bool
     QString kind = boss ? "最终BOSS" : (elite ? "精英战斗" : "普通战斗");
     addTaskProgress("开战", "任意", 1);
     appendLog(QString("进入%1：%2。按编队站位顺序依次行动，三名角色行动后敌方全体行动。").arg(kind).arg(battleEnemies.first().name));
+    refreshBattleScene();
 }
 
 void MainWindow::fightOneRound() {
@@ -1994,6 +2178,7 @@ void MainWindow::fightOneRound() {
     battleEnemies[targetIndex].hp = std::max(0, battleEnemies[targetIndex].hp - dmg);
     actedPlayers.insert(roleIndex);
     appendLog(QString("%1 使用 %2 攻击 %3，造成%4伤害。").arg(role.name).arg(action).arg(battleEnemies[targetIndex].name).arg(dmg));
+    shakeBattleActors();
     endBattleIfNeeded();
     resolveEnemyTurnIfRoundComplete();
     refreshAll();
@@ -2063,6 +2248,7 @@ void MainWindow::enemyTurn() {
     for (auto& role : party) {
         if (role.tauntRounds > 0) role.tauntRounds--;
     }
+    shakeBattleActors();
 }
 
 void MainWindow::endBattleIfNeeded() {
@@ -2095,8 +2281,10 @@ void MainWindow::endBattleIfNeeded() {
             appendLog("精英房已完成：下一层出口已开启，确认后将不可返回本层。");
         }
         appendLog(QString("战斗胜利：获得经验%1，恶魔币%2，掉落3件装备。").arg(totalExp).arg(totalCoin));
+        refreshBattleScene();
     } else if (alivePlayerCount() == 0) {
         inBattle = false;
+        refreshBattleScene();
         QMessageBox::warning(this, "地窟团灭", "地窟全体死亡，返回开学，保留进入地窟前的养成属性开启下一次轮回。");
         nextLoopAfterDeath();
     }
