@@ -63,16 +63,21 @@ int actionGoldChange(const QString& action, int workBonus) {
 
 QString assetRoot() {
     const QString exeDir = QCoreApplication::applicationDirPath();
+    // Try all possible asset locations, checking for a known file
     const QStringList roots = {
-        exeDir + "/../assets/",
         exeDir + "/assets/",
+        exeDir + "/../assets/",
+        QDir::currentPath() + "/assets/",
         QDir::currentPath() + "/../assets/",
-        QDir::currentPath() + "/assets/"
     };
     for (const QString& root : roots) {
-        if (QDir(root).exists()) return root;
+        // Check with a file we know exists in assets/
+        if (QFile::exists(root + "sprites/student.png") || QFile::exists(root + "scenes/classroom_dusk.jpg")) {
+            return root;
+        }
     }
-    return roots.first();
+    // Last resort: return the most likely path
+    return exeDir + "/assets/";
 }
 
 QString existingAsset(const QStringList& candidates) {
