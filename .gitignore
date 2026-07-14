@@ -103,14 +103,4 @@ Thumbs.db
 # Claude
 .claude/
 
-# Release runtime files (keep these for portable launch)
-!release/CampusRPG_GUI.exe
-!release/Qt5Core.dll
-!release/Qt5Gui.dll
-!release/Qt5Widgets.dll
-!release/libgcc_s_seh-1.dll
-!release/libstdc++-6.dll
-!release/libwinpthread-1.dll
-!release/platforms/
-!release/saves/
-!release/*.qm
+# Release runtime files (too large for GitHub, use local build)
