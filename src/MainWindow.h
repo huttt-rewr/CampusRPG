@@ -197,6 +197,10 @@ private:
     QString roleText(const CharacterData& role) const;
     QString skillsText(const CharacterData& role) const;
     QString inventoryText(const ItemData& item) const;
+    QString battleStatusText() const;
+    int selectedRoleOrFirstAlive() const;
+    void applyItemEffect(CharacterData& role, const ItemData& item);
+    void applyEquipmentStats(CharacterData& role, const ItemData& item, int sign);
     QString saveFilePath(int slot) const;
     QString currentSaveFilePath() const;
     void loadSlotMeta();

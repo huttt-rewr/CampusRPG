@@ -21,6 +21,7 @@
 #include <QStackedWidget>
 #include <QTableWidget>
 #include <QTextEdit>
+#include <QTime>
 #include <QVBoxLayout>
 #include <algorithm>
 #include <memory>
@@ -468,8 +469,9 @@ void MainWindow::refreshDemonShop() {
 void MainWindow::refreshDungeon() {
     if (!dungeonRoomList || !dungeonLabel) return;
     dungeonRoomList->clear();
-    dungeonLabel->setText(QString("地窟层数：%1/7 | 当前房间：%2 | 战斗状态：%3 | 恶魔币：%4")
-        .arg(dungeonLayer).arg(currentRoom + 1).arg(inBattle ? "战斗中" : "非战斗").arg(demonCoin));
+    dungeonLabel->setText(QString("地窟层数：%1/7 | 当前房间：%2 | 战斗状态：%3 | 恶魔币：%4\n%5")
+        .arg(dungeonLayer).arg(currentRoom + 1).arg(inBattle ? "战斗中" : "非战斗").arg(demonCoin)
+        .arg(battleStatusText()));
     for (int i = 0; i < rooms.size(); ++i) {
         QString type;
         if (rooms[i].type == RoomType::DemonShop) type = "恶魔商店";
@@ -500,7 +502,8 @@ void MainWindow::refreshCodex() {
 }
 
 void MainWindow::appendLog(const QString& text) {
-    if (logText) logText->append(text);
+    if (!logText) return;
+    logText->append(QString("[%1] %2").arg(QTime::currentTime().toString("HH:mm:ss"), text));
 }
 
 void MainWindow::slotClicked() {
@@ -830,6 +833,10 @@ void MainWindow::buyAngelItem() {
     if (row < 0 || row >= angelGoods.size()) return;
     ItemData item = angelGoods[row];
     int price = std::max(item.price * (100 - std::min(50, angelDiscount)) / 100, item.price / 2);
+    if (item.type != ItemType::Growth && inventory.size() >= kInventoryLimit) {
+        QMessageBox::warning(this, "背包已满", "背包已满，无法购买会占用背包格的物品。");
+        return;
+    }
     if (gold < price) {
         QMessageBox::warning(this, "金币不足", "金币不足，购买失败。");
         return;
@@ -855,6 +862,10 @@ void MainWindow::buyDemonItem() {
     if (row < 0 || row >= demonGoods.size()) return;
     ItemData item = demonGoods[row];
     int price = std::max(item.demonPrice * (100 - std::min(50, demonDiscount)) / 100, item.demonPrice / 2);
+    if (item.type != ItemType::Growth && inventory.size() >= kInventoryLimit) {
+        QMessageBox::warning(this, "背包已满", "背包已满，无法购买会占用背包格的物品。");
+        return;
+    }
     if (demonCoin < price) {
         QMessageBox::warning(this, "恶魔币不足", "恶魔币不足，购买失败。");
         return;
@@ -870,8 +881,15 @@ void MainWindow::buyDemonItem() {
 }
 
 void MainWindow::sellEquipmentToDemon() {
+    if (phase != GamePhase::Dungeon || dungeonLayer <= 0) {
+        QMessageBox::warning(this, "无法出售", "只能在地窟恶魔商店出售装备。");
+        return;
+    }
     int row = inventoryList->currentRow();
-    if (row < 0 || row >= inventory.size()) return;
+    if (row < 0 || row >= inventory.size()) {
+        QMessageBox::information(this, "请选择装备", "请先在背包列表选中要出售的装备。");
+        return;
+    }
     if (inventory[row].type != ItemType::Equipment) {
         QMessageBox::warning(this, "无法出售", "恶魔商店只收购装备。");
         return;
@@ -917,25 +935,38 @@ void MainWindow::useInventoryItem() {
         return;
     }
     int row = inventoryList->currentRow();
-    if (row < 0 || row >= inventory.size() || party.isEmpty()) return;
+    if (row < 0 || row >= inventory.size() || party.isEmpty()) {
+        QMessageBox::information(this, "请选择物品", "请先在背包列表选中要使用的物品。");
+        return;
+    }
     ItemData item = inventory[row];
     if (item.type == ItemType::Equipment || item.type == ItemType::Growth) {
         QMessageBox::information(this, "提示", "装备请在角色编队页面穿戴，养成物品购买时立即生效。");
         return;
     }
-    CharacterData& role = party[0];
-    if (item.hpRecover > 0) role.hp = std::min(role.maxHp, role.hp + item.hpRecover);
-    if (item.mpRecover > 0) role.mp = std::min(role.maxMp, role.mp + item.mpRecover);
-    if (item.staminaRecover > 0) role.vigor += item.staminaRecover;
+    int roleIndex = selectedRoleOrFirstAlive();
+    if (roleIndex < 0) {
+        QMessageBox::warning(this, "无人可用", "没有可使用物品的角色。");
+        return;
+    }
+    CharacterData& role = party[roleIndex];
+    if (item.hpRecover > 0 && role.hp >= role.maxHp && item.mpRecover == 0 && item.staminaRecover == 0) {
+        QMessageBox::information(this, "无需使用", QString("%1 当前生命值已满。").arg(role.name));
+        return;
+    }
+    applyItemEffect(role, item);
     inventory.removeAt(row);
-    appendLog(QString("非战斗使用物品：%1。").arg(item.name));
+    appendLog(QString("%1 非战斗使用 %2。").arg(role.name).arg(item.name));
     refreshAll();
     writeGame(currentSlot);
 }
 
 void MainWindow::discardInventoryItem() {
     int row = inventoryList->currentRow();
-    if (row < 0 || row >= inventory.size()) return;
+    if (row < 0 || row >= inventory.size()) {
+        QMessageBox::information(this, "请选择物品", "请先在背包列表选中要丢弃的物品。");
+        return;
+    }
     QString name = inventory[row].name;
     inventory.removeAt(row);
     appendLog(QString("丢弃物品：%1。").arg(name));
@@ -957,13 +988,14 @@ void MainWindow::equipSelectedItem() {
     }
     CharacterData& role = party[roleRow];
     QString old = role.equipment.value(item.equipSlot);
-    if (!old.isEmpty()) addItem(itemByName(old));
-    role.equipment[item.equipSlot] = item.name;
-    role.physicalAttack += item.attackBonus;
-    role.magicAttack += item.magicBonus;
-    role.physicalDefense += item.defenseBonus;
-    role.magicResistance += item.resistBonus;
     inventory.removeAt(itemRow);
+    if (!old.isEmpty()) {
+        ItemData oldItem = itemByName(old);
+        applyEquipmentStats(role, oldItem, -1);
+        inventory.push_back(oldItem);
+    }
+    role.equipment[item.equipSlot] = item.name;
+    applyEquipmentStats(role, item, 1);
     equippedOnce = true;
     addTaskProgress("穿戴装备", "任意", 1);
     appendLog(QString("%1 穿戴装备：%2。").arg(role.name).arg(item.name));
@@ -1342,24 +1374,22 @@ void MainWindow::nextLoopAfterDeath() {
 void MainWindow::useBattleMedicine() {
     if (!inBattle) return;
     int row = inventoryList->currentRow();
-    if (row < 0 || row >= inventory.size()) return;
+    if (row < 0 || row >= inventory.size()) {
+        QMessageBox::information(this, "请选择药品", "请先在背包列表选中战斗中要使用的药品或消耗品。");
+        return;
+    }
     ItemData item = inventory[row];
     if (!item.battleUsable || item.type == ItemType::Food) {
         QMessageBox::warning(this, "无法使用", "食品无法在战斗中使用，只有药品/战斗消耗品可用。");
         return;
     }
-    int roleIndex = firstAlivePlayer();
+    int roleIndex = selectedRoleOrFirstAlive();
     if (roleIndex < 0) return;
     CharacterData& role = party[roleIndex];
     if (item.name == "阿司匹林" || item.name == "神圣药水") {
         role.battleStun = 0;
     }
-    role.hp = std::min(role.maxHp, role.hp + (item.hpRecover > 0 ? item.hpRecover : role.maxHp * 30 / 100));
-    role.mp = std::min(role.maxMp, role.mp + item.mpRecover);
-    role.physicalAttack += item.attackBonus;
-    role.magicAttack += item.magicBonus;
-    role.physicalDefense += item.defenseBonus;
-    role.magicResistance += item.resistBonus;
+    applyItemEffect(role, item);
     if (item.name.contains("手雷")) {
         for (auto& enemy : battleEnemies) {
             if (enemy.hp > 0) enemy.hp = std::max(0, enemy.hp - std::max(item.attackBonus, item.magicBonus));
@@ -1505,6 +1535,58 @@ QString MainWindow::activeText(const CharacterData& role, int visibleIndex) cons
     if (!role.active) return "未上阵";
     if (formationType == 1) return visibleIndex == 0 ? "上阵·前排" : "上阵·后排";
     return visibleIndex < 2 ? "上阵·前排" : "上阵·后排";
+}
+
+QString MainWindow::battleStatusText() const {
+    QStringList lines;
+    QStringList players;
+    int visibleIndex = 0;
+    for (const auto& role : party) {
+        QString pos = activeText(role, visibleIndex);
+        if (role.active) visibleIndex++;
+        players << QString("%1[%2] HP %3/%4 MP %5/%6")
+            .arg(role.name, pos).arg(role.hp).arg(role.maxHp).arg(role.mp).arg(role.maxMp);
+    }
+    lines << "我方：" + (players.isEmpty() ? "无角色" : players.join("；"));
+    if (inBattle && !battleEnemies.isEmpty()) {
+        QStringList enemies;
+        for (const auto& enemy : battleEnemies) {
+            QString state;
+            if (enemy.frozen > 0) state += " 冻结";
+            if (enemy.slow > 0) state += " 迟缓";
+            enemies << QString("%1[%2] HP %3/%4%5")
+                .arg(enemy.name, enemy.kind).arg(enemy.hp).arg(enemy.maxHp).arg(state);
+        }
+        lines << "敌方：" + enemies.join("；");
+    } else {
+        lines << "敌方：当前没有进行中的战斗。";
+    }
+    return lines.join("\n");
+}
+
+int MainWindow::selectedRoleOrFirstAlive() const {
+    int row = characterList ? characterList->currentRow() : -1;
+    if (row >= 0 && row < party.size() && party[row].hp > 0) return row;
+    return firstAlivePlayer();
+}
+
+void MainWindow::applyItemEffect(CharacterData& role, const ItemData& item) {
+    int hpGain = item.hpRecover;
+    if (item.name == "回血药" && hpGain == 0) hpGain = role.maxHp * 30 / 100;
+    role.hp = std::min(role.maxHp, role.hp + hpGain);
+    role.mp = std::min(role.maxMp, role.mp + item.mpRecover);
+    role.vigor = std::min(160, role.vigor + item.staminaRecover);
+    role.physicalAttack += item.attackBonus;
+    role.magicAttack += item.magicBonus;
+    role.physicalDefense += item.defenseBonus;
+    role.magicResistance += item.resistBonus;
+}
+
+void MainWindow::applyEquipmentStats(CharacterData& role, const ItemData& item, int sign) {
+    role.physicalAttack = std::max(1, role.physicalAttack + item.attackBonus * sign);
+    role.magicAttack = std::max(1, role.magicAttack + item.magicBonus * sign);
+    role.physicalDefense = std::max(0, role.physicalDefense + item.defenseBonus * sign);
+    role.magicResistance = std::max(0, role.magicResistance + item.resistBonus * sign);
 }
 
 QString MainWindow::skillsText(const CharacterData& role) const {
