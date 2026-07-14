@@ -5,20 +5,28 @@
 #include <QApplication>
 #include <QComboBox>
 #include <QCoreApplication>
+#include <QGraphicsOpacityEffect>
 #include <QDir>
 #include <QFile>
 #include <QGridLayout>
+#include <QGroupBox>
 #include <QHeaderView>
+#include <QHBoxLayout>
 #include <QInputDialog>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
 #include <QMessageBox>
+#include <QPixmap>
+#include <QPropertyAnimation>
 #include <QPushButton>
 #include <QRandomGenerator>
 #include <QResizeEvent>
 #include <QSettings>
+#include <QSignalBlocker>
 #include <QStackedWidget>
+#include <QStyle>
+#include <QSplitter>
 #include <QTableWidget>
 #include <QTextEdit>
 #include <QTime>
@@ -51,6 +59,108 @@ int actionGoldChange(const QString& action, int workBonus) {
     if (action == "打工") return 45 + workBonus;
     if (action == "补习班") return -35;
     return 0;
+}
+
+QString assetRoot() {
+    const QString exeDir = QCoreApplication::applicationDirPath();
+    const QStringList roots = {
+        exeDir + "/../assets/",
+        exeDir + "/assets/",
+        QDir::currentPath() + "/../assets/",
+        QDir::currentPath() + "/assets/"
+    };
+    for (const QString& root : roots) {
+        if (QDir(root).exists()) return root;
+    }
+    return roots.first();
+}
+
+QString existingAsset(const QStringList& candidates) {
+    for (const QString& path : candidates) {
+        if (QFile::exists(path)) return path;
+    }
+    return QString();
+}
+
+QString professionSpritePath(const QString& profession) {
+    const QString base = assetRoot() + "sprites/";
+    if (profession == QString::fromUtf8("学生")) return existingAsset({base + "student.png", base + QString::fromUtf8("学生.jpg")});
+    if (profession == QString::fromUtf8("冰法师")) return existingAsset({base + "ice_mage.png", base + QString::fromUtf8("冰法师.jpg")});
+    if (profession == QString::fromUtf8("圣骑士")) return existingAsset({base + "paladin.png", base + QString::fromUtf8("圣骑士.jpg")});
+    if (profession == QString::fromUtf8("祈福者")) return existingAsset({base + "blesser.png", base + QString::fromUtf8("祈福者.jpg")});
+    if (profession == QString::fromUtf8("血战士")) return existingAsset({base + "blood_warrior.png", base + QString::fromUtf8("血战士.jpg")});
+    if (profession == QString::fromUtf8("魔术师")) return existingAsset({base + "magician.png", base + QString::fromUtf8("魔术师.jpg")});
+    return QString();
+}
+
+QString enemySpritePath(const QString& name) {
+    const QString base = assetRoot() + "sprites/";
+    const auto has = [&name](const char* text) { return name.contains(QString::fromUtf8(text)); };
+    if (has("体操幽灵")) return existingAsset({base + "gym_gymnast.png", base + QString::fromUtf8("体操幽灵.jpg")});
+    if (has("短跑者")) return existingAsset({base + "gym_sprinter.png", base + QString::fromUtf8("懈怠的短跑者.jpg")});
+    if (has("铅球手")) return existingAsset({base + "gym_shot_putter.png", base + QString::fromUtf8("驼背的铅球手.jpg")});
+    if (has("涂鸦书灵")) return existingAsset({base + "library_scribble_spirit.png", base + QString::fromUtf8("涂鸦书灵.jpg")});
+    if (has("目录魔像")) return existingAsset({base + "library_catalog_golem.png", base + QString::fromUtf8("目录魔像.jpg")});
+    if (has("禁书管理员")) return existingAsset({base + "library_banned_librarian.png", base + QString::fromUtf8("禁书管理员.jpg")});
+    if (has("小丑")) return existingAsset({base + "theater_clown.png", base + QString::fromUtf8("微笑小丑.jpg")});
+    if (has("悲情女主角")) return existingAsset({base + "theater_tragedy.png", base + QString::fromUtf8("悲情女主角.jpg")});
+    if (has("镜面侍从")) return existingAsset({base + "theater_mirror_attendant.png", base + QString::fromUtf8("镜面侍从.jpg")});
+    if (has("酸液")) return existingAsset({base + "lab_acid_slime.png", base + QString::fromUtf8("酸液史莱姆.jpg")});
+    if (has("烧杯")) return existingAsset({base + "lab_beaker.png", base + QString::fromUtf8("爆炸烧杯怪.jpg")});
+    if (has("试管")) return existingAsset({base + "lab_tube.png", base + QString::fromUtf8("剧毒试管精.jpg")});
+    if (has("塔罗") || has("命运轮盘")) return existingAsset({base + "divination_tarot.png", base + QString::fromUtf8("塔罗士兵.jpg")});
+    if (has("时针")) return existingAsset({base + "divination_clock_ghost.png", base + QString::fromUtf8("时针幽灵.jpg")});
+    if (has("命运轮盘")) return existingAsset({base + "divination_tarot.png", base + QString::fromUtf8("塔罗士兵.jpg")});
+    if (has("铁腕")) return existingAsset({base + "office_iron_hand.png", base + QString::fromUtf8("教导处铁腕.jpg")});
+    if (has("纪律巡查")) return existingAsset({base + "office_discipline_inspector.png", base + QString::fromUtf8("纪律巡查使.jpg")});
+    if (has("扉页守护")) return existingAsset({base + "elite_book_guardian.png", base + QString::fromUtf8("扉页守护者.jpg")});
+    if (has("百米王者")) return existingAsset({base + "elite_winged_runner.png", base + QString::fromUtf8("折翼的百米王者.jpg")});
+    if (has("无面舞者")) return existingAsset({base + "elite_faceless_dancer.png", base + QString::fromUtf8("无面舞者.jpg")});
+    if (has("时计塔")) return existingAsset({base + "elite_clock_prisoner.png", base + QString::fromUtf8("时计塔的囚徒.jpg")});
+    if (has("畸变融合")) return existingAsset({base + "elite_mutant.png", base + QString::fromUtf8("畸变融合体.jpg")});
+    if (has("铁锈执念") || has("陈暮")) return existingAsset({base + "elite_rust_regret.png", base + QString::fromUtf8("铁锈执念·陈暮.jpg")});
+    if (has("伪典校长")) return existingAsset({base + "boss_principal.png", base + QString::fromUtf8("伪典校长·零.jpg")});
+    return QString();
+}
+
+QString fallbackEnemySpritePath(int layer) {
+    const QString base = assetRoot() + "sprites/";
+    switch (std::max(1, layer)) {
+    case 1: return existingAsset({base + "gym_sprinter.png"});
+    case 2: return existingAsset({base + "library_scribble_spirit.png"});
+    case 3: return existingAsset({base + "theater_clown.png"});
+    case 4: return existingAsset({base + "lab_beaker.png"});
+    case 5: return existingAsset({base + "divination_tarot.png"});
+    case 6: return existingAsset({base + "office_iron_hand.png"});
+    default: return existingAsset({base + "boss_principal.png"});
+    }
+}
+
+QString scenePath(bool inDungeon, int layer, bool inDemonShop = false, bool inChestRoom = false) {
+    const QString base = assetRoot() + "scenes/";
+    if (inDungeon) {
+        if (inDemonShop) return base + "demon_shop.jpg";
+        if (inChestRoom) return base + "equipment_room.jpg";
+        if (layer <= 1) return base + "dungeon_01_gym.jpg";
+        if (layer == 2) return base + "dungeon_02_library.jpg";
+        if (layer == 3) return base + "dungeon_03_theater.jpg";
+        if (layer == 4) return base + "dungeon_04_lab.jpg";
+        if (layer == 5) return base + "dungeon_05_divination.jpg";
+        if (layer == 6) return base + "dungeon_06_office.jpg";
+        return base + "dungeon_07_boss.png";
+    }
+    return base + "classroom_dusk.jpg";
+}
+
+QString phaseScenePath(int phaseValue) {
+    const QString base = assetRoot() + "scenes/";
+    switch (phaseValue) {
+    case 1: return base + "classroom_dusk.jpg"; // First semester.
+    case 2: return base + "playground.jpg";      // Winter break.
+    case 3: return base + "classroom_dusk.jpg"; // Second semester.
+    case 4: return base + "demon_shop.jpg";     // Angel shop fallback scene.
+    default: return base + "classroom_dusk.jpg";
+    }
 }
 }
 
@@ -117,18 +227,55 @@ void MainWindow::setupData() {
         {16, "通关第六层", "通过神秘地窟第六层。", "通层", "6", 1, 0, 0, 270, 40, ""},
         {17, "逃离轮回", "击败第七层最终BOSS伪典校长·零。", "最终BOSS", "伪典校长·零", 1, 0, 0, 1000, 100, ""}
     };
+    registerCodexEnemies();
+}
+
+void MainWindow::registerCodexEnemies() {
+    codex.clear();
+    const auto addGroup = [this](const QVector<EnemyData>& enemies) {
+        for (const EnemyData& enemy : enemies) {
+            codex[enemy.name] = enemy;
+            if (!encountered.contains(enemy.name)) encountered[enemy.name] = false;
+        }
+    };
+    for (int layer = 1; layer <= 6; ++layer) {
+        addGroup(makeEnemyGroup(layer, false, false));
+        addGroup(makeEnemyGroup(layer, true, false));
+    }
+    addGroup(makeEnemyGroup(7, false, true));
 }
 
 void MainWindow::setupSavePage() {
     savePage = new QWidget(this);
+    savePage->setObjectName("saveRoot");
     auto* layout = new QVBoxLayout(savePage);
     saveTitleLabel = new QLabel("校园RPG冒险游戏\n选择存档开始轮回", savePage);
     saveTitleLabel->setAlignment(Qt::AlignCenter);
     saveHintLabel = new QLabel("总共 4 个存档位。空白存档可创建角色，已有存档可读取或删除。", savePage);
     saveHintLabel->setAlignment(Qt::AlignCenter);
+    saveSceneLabel = new QLabel(savePage);
+    saveSceneLabel->setAlignment(Qt::AlignCenter);
+    saveSceneLabel->setMinimumHeight(210);
+    saveSceneLabel->setStyleSheet("background:#111a2b;color:#f4ddb1;border:2px solid #b69755;border-radius:10px;");
+    auto* portraits = new QHBoxLayout();
+    for (const auto& prof : professions) {
+        const QString name = QString::fromStdString(prof->name());
+        const QPixmap portrait(professionSpritePath(name));
+        auto* label = new QLabel(name, savePage);
+        label->setAlignment(Qt::AlignCenter);
+        label->setMinimumSize(120, 155);
+        label->setStyleSheet("background:#1a2940;border:2px solid #8e774b;border-radius:10px;color:#f1dca8;font-weight:600;");
+        if (!portrait.isNull()) {
+            label->setPixmap(portrait.scaled(112, 120, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+            label->setToolTip(name);
+        }
+        portraits->addWidget(label);
+    }
     slotGrid = new QGridLayout();
     layout->addWidget(saveTitleLabel);
     layout->addWidget(saveHintLabel);
+    layout->addWidget(saveSceneLabel);
+    layout->addLayout(portraits);
     layout->addLayout(slotGrid);
     layout->addStretch();
     stack->addWidget(savePage);
@@ -136,32 +283,69 @@ void MainWindow::setupSavePage() {
 
 void MainWindow::setupGamePage() {
     gamePage = new QWidget(this);
+    gamePage->setObjectName("gameRoot");
     auto* root = new QVBoxLayout(gamePage);
+    root->setContentsMargins(14, 12, 14, 14);
+    root->setSpacing(10);
     tabs = new QTabWidget(gamePage);
+    taskHeaderButton = new QPushButton(gamePage);
+    taskHeaderButton->setMinimumHeight(44);
+    taskHeaderButton->setObjectName("taskHeader");
+    root->addWidget(taskHeaderButton);
     root->addWidget(tabs, 1);
+
+    auto decorateAction = [this](QPushButton* button, QStyle::StandardPixmap icon, bool accent = false) {
+        button->setIcon(style()->standardIcon(icon));
+        button->setIconSize(QSize(28, 28));
+        button->setMinimumHeight(58);
+        button->setProperty("accent", accent);
+    };
 
     auto* overviewPage = new QWidget(gamePage);
     auto* overviewLayout = new QVBoxLayout(overviewPage);
+    overviewLayout->setContentsMargins(18, 16, 18, 16);
+    overviewLayout->setSpacing(12);
+    overviewSceneLabel = new QLabel(overviewPage);
+    overviewSceneLabel->setAlignment(Qt::AlignCenter);
+    overviewSceneLabel->setMinimumHeight(230);
+    overviewSceneLabel->setStyleSheet("background:#111a2b;color:#f4ddb1;border:2px solid #b69755;border-radius:10px;");
     overviewLabel = new QLabel(overviewPage);
     overviewLabel->setWordWrap(true);
     logText = new QTextEdit(overviewPage);
     logText->setReadOnly(true);
     auto* saveBtn = new QPushButton("保存当前存档", overviewPage);
+    decorateAction(saveBtn, QStyle::SP_DialogSaveButton, true);
+    overviewLayout->addWidget(overviewSceneLabel);
     overviewLayout->addWidget(overviewLabel);
     overviewLayout->addWidget(saveBtn);
     overviewLayout->addWidget(logText, 1);
     tabs->addTab(overviewPage, "轮回总览");
     connect(saveBtn, &QPushButton::clicked, this, &MainWindow::saveGame);
+    connect(taskHeaderButton, &QPushButton::clicked, this, [this]() {
+        for (int i = 0; i < tabs->count(); ++i) {
+            if (tabs->tabText(i) == QString::fromUtf8("任务")) {
+                tabs->setCurrentIndex(i);
+                break;
+            }
+        }
+    });
 
     auto* schedulePage = new QWidget(gamePage);
     auto* scheduleLayout = new QVBoxLayout(schedulePage);
+    scheduleLayout->setContentsMargins(18, 16, 18, 16);
+    scheduleLayout->setSpacing(10);
     schedulePreviewLabel = new QLabel(schedulePage);
+    scheduleRoleLabel = new QLabel(schedulePage);
     scheduleTable = new QTableWidget(kDays, kHalfDays, schedulePage);
     scheduleTable->setHorizontalHeaderLabels({"上午", "下午"});
     scheduleTable->setVerticalHeaderLabels({"周一", "周二", "周三", "周四", "周五", "周六", "周日"});
     auto* runSemesterBtn = new QPushButton("执行本学期20周课表", schedulePage);
     auto* restBtn = new QPushButton("寒假休息（提升全体血量）", schedulePage);
     auto* workBtn = new QPushButton("寒假打工（获得额外金币）", schedulePage);
+    decorateAction(runSemesterBtn, QStyle::SP_MediaPlay, true);
+    decorateAction(restBtn, QStyle::SP_TitleBarShadeButton);
+    decorateAction(workBtn, QStyle::SP_FileDialogDetailedView);
+    scheduleLayout->addWidget(scheduleRoleLabel);
     scheduleLayout->addWidget(schedulePreviewLabel);
     scheduleLayout->addWidget(scheduleTable, 1);
     scheduleLayout->addWidget(runSemesterBtn);
@@ -174,59 +358,124 @@ void MainWindow::setupGamePage() {
     rebuildScheduleTable();
 
     auto* rolePage = new QWidget(gamePage);
-    auto* roleLayout = new QVBoxLayout(rolePage);
+    auto* roleLayout = new QHBoxLayout(rolePage);
+    roleLayout->setContentsMargins(18, 16, 18, 16);
+    roleLayout->setSpacing(14);
     characterList = new QListWidget(rolePage);
+    characterPreviewLabel = new QLabel(rolePage);
+    characterPreviewLabel->setAlignment(Qt::AlignCenter);
+    characterPreviewLabel->setMinimumWidth(300);
+    characterPreviewLabel->setStyleSheet("background:#111a2b;color:#f4ddb1;border:2px solid #b69755;border-radius:10px;");
+    auto* roleActions = new QVBoxLayout();
     auto* formation1 = new QPushButton("阵型：前排1 后排2", rolePage);
     auto* formation2 = new QPushButton("阵型：前排2 后排1", rolePage);
     auto* activeBtn = new QPushButton("选中角色 上阵/下阵", rolePage);
     auto* upBtn = new QPushButton("选中角色上移站位", rolePage);
     auto* downBtn = new QPushButton("选中角色下移站位", rolePage);
     auto* equipBtn = new QPushButton("给选中角色穿戴背包选中装备", rolePage);
-    roleLayout->addWidget(characterList, 1);
-    roleLayout->addWidget(formation1);
-    roleLayout->addWidget(formation2);
-    roleLayout->addWidget(activeBtn);
-    roleLayout->addWidget(upBtn);
-    roleLayout->addWidget(downBtn);
-    roleLayout->addWidget(equipBtn);
-    tabs->addTab(rolePage, "角色编队");
+    decorateAction(formation1, QStyle::SP_ArrowUp);
+    decorateAction(formation2, QStyle::SP_ArrowDown);
+    decorateAction(activeBtn, QStyle::SP_DialogApplyButton, true);
+    decorateAction(upBtn, QStyle::SP_ArrowUp);
+    decorateAction(downBtn, QStyle::SP_ArrowDown);
+    decorateAction(equipBtn, QStyle::SP_DialogOpenButton);
+    roleActions->addWidget(formation1);
+    roleActions->addWidget(formation2);
+    roleActions->addWidget(activeBtn);
+    roleActions->addWidget(upBtn);
+    roleActions->addWidget(downBtn);
+    roleActions->addWidget(equipBtn);
+    roleActions->addStretch();
+    auto* characterPanel = new QVBoxLayout();
+    characterPanel->addWidget(characterPreviewLabel, 1);
+    auto* characterBagTitle = new QLabel("快捷背包：选中装备后可直接穿戴，食品/药品可直接使用", rolePage);
+    characterInventoryList = new QListWidget(rolePage);
+    auto* quickEquipBtn = new QPushButton("快速穿戴选中装备", rolePage);
+    auto* quickUseBtn = new QPushButton("使用选中物品", rolePage);
+    decorateAction(quickEquipBtn, QStyle::SP_DialogOpenButton, true);
+    decorateAction(quickUseBtn, QStyle::SP_DialogApplyButton);
+    characterPanel->addWidget(characterBagTitle);
+    characterPanel->addWidget(characterInventoryList, 1);
+    auto* quickBagActions = new QHBoxLayout();
+    quickBagActions->addWidget(quickEquipBtn);
+    quickBagActions->addWidget(quickUseBtn);
+    characterPanel->addLayout(quickBagActions);
+    roleLayout->addWidget(characterList, 2);
+    roleLayout->addLayout(characterPanel, 3);
+    roleLayout->addLayout(roleActions, 2);
+    tabs->addTab(rolePage, "角色信息/战前编队");
     connect(formation1, &QPushButton::clicked, this, &MainWindow::setFormationOneFront);
     connect(formation2, &QPushButton::clicked, this, &MainWindow::setFormationTwoFront);
     connect(activeBtn, &QPushButton::clicked, this, &MainWindow::toggleSelectedRoleActive);
     connect(upBtn, &QPushButton::clicked, this, &MainWindow::moveRoleUp);
     connect(downBtn, &QPushButton::clicked, this, &MainWindow::moveRoleDown);
     connect(equipBtn, &QPushButton::clicked, this, &MainWindow::equipSelectedItem);
+    connect(quickEquipBtn, &QPushButton::clicked, this, &MainWindow::equipSelectedItem);
+    connect(quickUseBtn, &QPushButton::clicked, this, &MainWindow::useInventoryItem);
+    connect(characterList, &QListWidget::currentRowChanged, this, [this](int) {
+        updateVisualPreviews();
+    });
+    connect(characterInventoryList, &QListWidget::currentRowChanged, this, [this](int row) {
+        selectedInventoryRow = row;
+        if (inventoryList && inventoryList->currentRow() != row) inventoryList->setCurrentRow(row);
+    });
 
     auto* bagPage = new QWidget(gamePage);
     auto* bagLayout = new QVBoxLayout(bagPage);
+    bagLayout->setContentsMargins(18, 16, 18, 16);
+    bagLayout->setSpacing(10);
     inventoryList = new QListWidget(bagPage);
     auto* useBtn = new QPushButton("使用选中物品", bagPage);
     auto* discardBtn = new QPushButton("丢弃选中物品", bagPage);
+    decorateAction(useBtn, QStyle::SP_DialogApplyButton, true);
+    decorateAction(discardBtn, QStyle::SP_TrashIcon);
     bagLayout->addWidget(inventoryList, 1);
     bagLayout->addWidget(useBtn);
     bagLayout->addWidget(discardBtn);
     tabs->addTab(bagPage, "背包");
     connect(useBtn, &QPushButton::clicked, this, &MainWindow::useInventoryItem);
     connect(discardBtn, &QPushButton::clicked, this, &MainWindow::discardInventoryItem);
+    connect(inventoryList, &QListWidget::currentRowChanged, this, [this](int row) {
+        selectedInventoryRow = row;
+        if (characterInventoryList && characterInventoryList->currentRow() != row) characterInventoryList->setCurrentRow(row);
+    });
 
     auto* taskPage = new QWidget(gamePage);
     auto* taskLayout = new QVBoxLayout(taskPage);
+    taskLayout->setContentsMargins(18, 16, 18, 16);
+    taskLayout->setSpacing(10);
     taskList = new QListWidget(taskPage);
     auto* acceptBtn = new QPushButton("接受选中任务", taskPage);
     auto* claimBtn = new QPushButton("领取选中奖励", taskPage);
+    auto* taskUpBtn = new QPushButton("提高任务优先级", taskPage);
+    auto* taskDownBtn = new QPushButton("降低任务优先级", taskPage);
+    decorateAction(acceptBtn, QStyle::SP_DialogApplyButton, true);
+    decorateAction(claimBtn, QStyle::SP_DialogSaveButton);
     taskLayout->addWidget(taskList, 1);
     taskLayout->addWidget(acceptBtn);
     taskLayout->addWidget(claimBtn);
+    taskLayout->addWidget(taskUpBtn);
+    taskLayout->addWidget(taskDownBtn);
     tabs->addTab(taskPage, "任务");
     connect(acceptBtn, &QPushButton::clicked, this, &MainWindow::acceptTask);
     connect(claimBtn, &QPushButton::clicked, this, &MainWindow::claimTask);
+    connect(taskUpBtn, &QPushButton::clicked, this, &MainWindow::moveTaskUp);
+    connect(taskDownBtn, &QPushButton::clicked, this, &MainWindow::moveTaskDown);
 
     auto* angelPage = new QWidget(gamePage);
     auto* angelLayout = new QVBoxLayout(angelPage);
+    angelLayout->setContentsMargins(18, 16, 18, 16);
+    angelLayout->setSpacing(10);
+    auto* angelBalanceLabel = new QLabel(angelPage);
+    angelBalanceLabel->setObjectName("angelBalance");
     angelShopList = new QListWidget(angelPage);
     auto* enterAngelBtn = new QPushButton("暑假进入天使商店", angelPage);
     auto* buyAngelBtn = new QPushButton("购买选中天使商品", angelPage);
     auto* enterDungeonBtn = new QPushButton("购买完成，进入7层神秘地窟（离开后金币清空）", angelPage);
+    decorateAction(enterAngelBtn, QStyle::SP_DirHomeIcon, true);
+    decorateAction(buyAngelBtn, QStyle::SP_DialogOpenButton);
+    decorateAction(enterDungeonBtn, QStyle::SP_ArrowForward, true);
+    angelLayout->addWidget(angelBalanceLabel);
     angelLayout->addWidget(angelShopList, 1);
     angelLayout->addWidget(enterAngelBtn);
     angelLayout->addWidget(buyAngelBtn);
@@ -238,29 +487,99 @@ void MainWindow::setupGamePage() {
 
     auto* dungeonPage = new QWidget(gamePage);
     auto* dungeonLayout = new QVBoxLayout(dungeonPage);
+    dungeonLayout->setContentsMargins(18, 16, 18, 16);
+    dungeonLayout->setSpacing(10);
     dungeonLabel = new QLabel(dungeonPage);
     dungeonLabel->setWordWrap(true);
+    dungeonSceneLabel = new QLabel(dungeonPage);
+    dungeonSceneLabel->setAlignment(Qt::AlignCenter);
+    dungeonSceneLabel->setMinimumHeight(220);
+    dungeonSceneLabel->setStyleSheet("background:#111a2b;color:#f4ddb1;border:2px solid #b69755;border-radius:10px;");
+    dungeonPreviewLabel = new QLabel(dungeonPage);
+    dungeonPreviewLabel->setAlignment(Qt::AlignCenter);
+    dungeonPreviewLabel->setMinimumHeight(220);
+    dungeonPreviewLabel->setStyleSheet("background:#111a2b;color:#f4ddb1;border:2px solid #b69755;border-radius:10px;");
     dungeonRoomList = new QListWidget(dungeonPage);
+    dungeonRoomList->setVisible(false);
+    auto* mapHost = new QWidget(dungeonPage);
+    dungeonMapGrid = new QGridLayout(mapHost);
+    dungeonMapGrid->setSpacing(10);
+    dungeonMapGrid->setContentsMargins(14, 14, 14, 14);
     demonShopList = new QListWidget(dungeonPage);
+    auto* demonBalanceLabel = new QLabel(dungeonPage);
+    demonBalanceLabel->setObjectName("demonBalance");
     auto* exploreBtn = new QPushButton("进入/探索选中房间", dungeonPage);
     auto* buyDemonBtn = new QPushButton("购买选中恶魔商品", dungeonPage);
     auto* sellDemonBtn = new QPushButton("出售背包装备给恶魔商店（半价）", dungeonPage);
-    fightRoundBtn = new QPushButton("战斗：我方全体行动一轮", dungeonPage);
+    fightRoundBtn = new QPushButton("确认当前角色行动", dungeonPage);
     battleMedicineBtn = new QPushButton("战斗：使用背包选中药品", dungeonPage);
+    battleTurnLabel = new QLabel(dungeonPage);
+    battleActionCombo = new QComboBox(dungeonPage);
+    battleTargetList = new QListWidget(dungeonPage);
+    auto* nextLayerBtn = new QPushButton("通过精英房，进入下一层", dungeonPage);
+    nextLayerBtn->setObjectName("nextLayerButton");
+    decorateAction(exploreBtn, QStyle::SP_DirOpenIcon, true);
+    decorateAction(buyDemonBtn, QStyle::SP_DialogOpenButton);
+    decorateAction(sellDemonBtn, QStyle::SP_DialogSaveButton);
+    decorateAction(fightRoundBtn, QStyle::SP_MediaPlay, true);
+    decorateAction(battleMedicineBtn, QStyle::SP_DialogApplyButton);
+    auto* dungeonVisuals = new QHBoxLayout();
+    dungeonVisuals->addWidget(dungeonSceneLabel, 3);
+    dungeonVisuals->addWidget(dungeonPreviewLabel, 2);
+
+    auto* mapBox = new QGroupBox("地窟路线", dungeonPage);
+    auto* mapLayout = new QVBoxLayout(mapBox);
+    mapLayout->setContentsMargins(12, 16, 12, 12);
+    mapLayout->addWidget(mapHost, 1);
+
+    auto* tradeBox = new QGroupBox("恶魔商店", dungeonPage);
+    tradeBox->setObjectName("demonShopBox");
+    auto* tradeLayout = new QVBoxLayout(tradeBox);
+    tradeLayout->setContentsMargins(12, 16, 12, 12);
+    tradeLayout->setSpacing(8);
+    tradeLayout->addWidget(demonBalanceLabel);
+    tradeLayout->addWidget(demonShopList, 1);
+    auto* tradeButtons = new QHBoxLayout();
+    tradeButtons->addWidget(buyDemonBtn);
+    tradeButtons->addWidget(sellDemonBtn);
+    tradeLayout->addLayout(tradeButtons);
+
+    auto* battleBox = new QGroupBox("战斗指令", dungeonPage);
+    battleBox->setObjectName("battleBox");
+    auto* battleLayout = new QVBoxLayout(battleBox);
+    battleLayout->setContentsMargins(12, 16, 12, 12);
+    battleLayout->setSpacing(8);
+    battleLayout->addWidget(battleTurnLabel);
+    battleLayout->addWidget(battleActionCombo);
+    battleLayout->addWidget(battleTargetList, 1);
+    auto* battleButtons = new QHBoxLayout();
+    battleButtons->addWidget(fightRoundBtn);
+    battleButtons->addWidget(battleMedicineBtn);
+    battleLayout->addLayout(battleButtons);
+
+    auto* lowerSplit = new QSplitter(Qt::Horizontal, dungeonPage);
+    lowerSplit->setChildrenCollapsible(false);
+    lowerSplit->addWidget(mapBox);
+    lowerSplit->addWidget(tradeBox);
+    lowerSplit->addWidget(battleBox);
+    lowerSplit->setStretchFactor(0, 3);
+    lowerSplit->setStretchFactor(1, 2);
+    lowerSplit->setStretchFactor(2, 2);
     dungeonLayout->addWidget(dungeonLabel);
-    dungeonLayout->addWidget(dungeonRoomList, 1);
-    dungeonLayout->addWidget(demonShopList);
+    dungeonLayout->addLayout(dungeonVisuals);
+    dungeonLayout->addWidget(lowerSplit, 1);
+    dungeonLayout->addWidget(dungeonRoomList);
+    exploreBtn->setVisible(false);
     dungeonLayout->addWidget(exploreBtn);
-    dungeonLayout->addWidget(buyDemonBtn);
-    dungeonLayout->addWidget(sellDemonBtn);
-    dungeonLayout->addWidget(fightRoundBtn);
-    dungeonLayout->addWidget(battleMedicineBtn);
+    dungeonLayout->addWidget(nextLayerBtn);
     tabs->addTab(dungeonPage, "地窟/恶魔商店");
     connect(exploreBtn, &QPushButton::clicked, this, &MainWindow::exploreRoom);
     connect(buyDemonBtn, &QPushButton::clicked, this, &MainWindow::buyDemonItem);
     connect(sellDemonBtn, &QPushButton::clicked, this, &MainWindow::sellEquipmentToDemon);
     connect(fightRoundBtn, &QPushButton::clicked, this, &MainWindow::fightOneRound);
     connect(battleMedicineBtn, &QPushButton::clicked, this, &MainWindow::useBattleMedicine);
+    connect(dungeonRoomList, &QListWidget::currentRowChanged, this, [this](int) { updateVisualPreviews(); });
+    connect(nextLayerBtn, &QPushButton::clicked, this, &MainWindow::enterNextDungeonLayer);
 
     auto* codexPage = new QWidget(gamePage);
     auto* codexLayout = new QVBoxLayout(codexPage);
@@ -274,37 +593,48 @@ void MainWindow::setupGamePage() {
 void MainWindow::resizeEvent(QResizeEvent* event) {
     QMainWindow::resizeEvent(event);
     updateUiScale();
+    updateVisualPreviews();
 }
 
 void MainWindow::updateUiScale() {
-    int base = std::max(12, std::min(width() / 78, height() / 52));
-    int buttonFont = std::max(13, base + 1);
-    int titleFont = std::max(24, base * 2);
-    int tabFont = std::max(13, base);
-    int listFont = std::max(12, base);
-    int padY = std::max(7, base / 2);
-    int padX = std::max(12, base);
-    int radius = std::max(5, base / 3);
+    int base = std::max(14, std::min(width() / 70, height() / 46));
+    int buttonFont = std::max(16, base + 2);
+    int titleFont = std::max(28, base * 2);
+    int tabFont = std::max(15, base + 1);
+    int listFont = std::max(14, base);
+    int padY = std::max(10, base / 2 + 2);
+    int padX = std::max(16, base + 2);
+    int radius = std::max(8, base / 2);
 
     setStyleSheet(QString(
-        "QMainWindow{background:#eef3f8;color:#1f2933;}"
+        "QMainWindow{background:#111a2b;color:#eadfbe;}"
         "QWidget{font-family:'Microsoft YaHei','SimHei',sans-serif;}"
-        "QLabel{font-size:%1px;line-height:1.35;color:#1f2933;}"
-        "QPushButton{font-size:%2px;padding:%3px %4px;border:1px solid #7f95ad;border-radius:%5px;background:#ffffff;color:#1f2933;}"
-        "QPushButton:hover{background:#e6f0ff;border-color:#4f7fbd;}"
-        "QPushButton:pressed{background:#d5e6ff;}"
-        "QPushButton:disabled{color:#9aa3ad;background:#eef1f5;border-color:#c8d0da;}"
-        "QTabWidget::pane{border:1px solid #c1ccd9;background:#ffffff;}"
-        "QTabBar::tab{font-size:%6px;padding:%3px %4px;background:#dbe5f0;border:1px solid #c1ccd9;color:#263544;}"
-        "QTabBar::tab:selected{background:#ffffff;font-weight:600;border-bottom:2px solid #4f7fbd;}"
-        "QListWidget,QTextEdit,QTableWidget,QComboBox{font-size:%7px;background:#ffffff;border:1px solid #c1ccd9;border-radius:%5px;padding:%8px;selection-background-color:#cfe1ff;selection-color:#102033;}"
-        "QListWidget::item{padding:%8px;border-bottom:1px solid #edf1f6;}"
-        "QListWidget::item:selected{background:#cfe1ff;border-left:4px solid #4f7fbd;}"
-        "QHeaderView::section{font-size:%7px;padding:%8px;background:#edf3fa;border:1px solid #c1ccd9;color:#263544;}"
-    ).arg(base).arg(buttonFont).arg(padY).arg(padX).arg(radius).arg(tabFont).arg(listFont).arg(std::max(5, base / 3)));
+        "QWidget#saveRoot,QWidget#gameRoot{border-image:url(\"%9/scenes/main_academy_background.png\") 0 0 0 0 stretch stretch;}"
+        "QWidget#saveRoot QWidget,QWidget#gameRoot QWidget{background:transparent;}"
+        "QWidget#gameRoot > QTabWidget{background:rgba(10,18,33,190);border-radius:%5px;border:1px solid #a98b52;}"
+        "QLabel{font-size:%1px;line-height:1.35;color:#eadfbe;}"
+        "QPushButton{font-size:%2px;font-weight:600;padding:%3px %4px;border:1px solid #a98b52;border-radius:%5px;background:#1d2b43;color:#f2e7c9;text-align:left;}"
+        "QPushButton:hover{background:#2a3d5c;border-color:#d0b170;color:#fff5d9;}"
+        "QPushButton:pressed{background:#142238;border-color:#e3c27d;}"
+        "QPushButton[accent=\"true\"]{background:#6f293b;color:#fff2d2;border-color:#c29b56;}"
+        "QPushButton[accent=\"true\"]:hover{background:#853247;border-color:#e0bd70;}"
+        "QPushButton:disabled{color:#778093;background:#182335;border-color:#36465c;}"
+        "QPushButton#taskHeader{background:#17233a;border:1px solid #a98b52;color:#f1dca8;font-weight:700;text-align:left;padding-left:%4px;}"
+        "QTabWidget::pane{border:1px solid #8e774b;background:rgba(17,28,47,205);border-radius:%5px;}"
+        "QTabBar::tab{font-size:%6px;font-weight:600;padding:%3px %4px;background:#202f48;border:1px solid #61708a;color:#cfc29d;border-top-left-radius:%5px;border-top-right-radius:%5px;}"
+        "QTabBar::tab:hover{background:#314562;color:#fff0c7;}"
+        "QTabBar::tab:selected{background:#6b293b;color:#ffe9b2;border-bottom:3px solid #d4ab5c;}"
+        "QGroupBox{font-size:%7px;font-weight:700;color:#edcf91;border:1px solid #8e774b;border-radius:%5px;margin-top:10px;background:#17243a;}"
+        "QGroupBox::title{subcontrol-origin:margin;left:12px;padding:0 6px;}"
+        "QListWidget,QTextEdit,QTableWidget,QComboBox{font-size:%7px;background:#202a3a;border:1px solid #756a51;border-radius:%5px;padding:%8px;color:#ede4ce;selection-background-color:#653247;selection-color:#fff4d7;}"
+        "QListWidget::item{padding:%8px;border-bottom:1px solid #3c4657;}"
+        "QListWidget::item:hover{background:#293850;}"
+        "QListWidget::item:selected{background:#653247;border-left:4px solid #d4ab5c;}"
+        "QHeaderView::section{font-size:%7px;font-weight:600;padding:%8px;background:#293850;border:1px solid #756a51;color:#f2dfb3;}"
+    ).arg(base).arg(buttonFont).arg(padY).arg(padX).arg(radius).arg(tabFont).arg(listFont).arg(std::max(5, base / 3)).arg(assetRoot().chopped(1)));
 
     if (saveTitleLabel) {
-        saveTitleLabel->setStyleSheet(QString("font-size:%1px;font-weight:800;padding:%2px;color:#102033;").arg(titleFont).arg(std::max(16, base)));
+        saveTitleLabel->setStyleSheet(QString("font-size:%1px;font-weight:800;padding:%2px;color:#f4ddb1;").arg(titleFont).arg(std::max(16, base)));
     }
     if (slotGrid) {
         for (int i = 0; i < slotGrid->count(); ++i) {
@@ -331,6 +661,21 @@ void MainWindow::rebuildScheduleTable() {
     }
 }
 
+void MainWindow::loadScheduleForCurrentRole() {
+    if (!scheduleTable || schedulingRoleIndex < 0 || schedulingRoleIndex >= party.size()) return;
+    const QString key = party[schedulingRoleIndex].profession;
+    const QVector<QString> preset = keepSchedulePreset.value(key) ? savedSchedules.value(key) : QVector<QString>();
+    for (int day = 0; day < kDays; ++day) {
+        for (int half = 0; half < kHalfDays; ++half) {
+            auto* combo = qobject_cast<QComboBox*>(scheduleTable->cellWidget(day, half));
+            if (!combo) continue;
+            const int index = day * kHalfDays + half;
+            combo->setCurrentText(index < preset.size() ? preset[index] : QString::fromUtf8("不上课"));
+        }
+    }
+    refreshSchedulePreview();
+}
+
 void MainWindow::connectActions() {
     refreshSaveSlots();
 }
@@ -339,11 +684,53 @@ void MainWindow::showSavePage() {
     phase = GamePhase::SaveSelect;
     stack->setCurrentWidget(savePage);
     refreshSaveSlots();
+    if (saveSceneLabel) {
+        const QPixmap scene(assetRoot() + "scenes/classroom_dusk.jpg");
+        if (scene.isNull()) {
+            saveSceneLabel->setPixmap(QPixmap());
+            saveSceneLabel->setText(QString::fromUtf8("校园场景图未找到"));
+        } else {
+            saveSceneLabel->setText(QString());
+            saveSceneLabel->setPixmap(scene.scaled(saveSceneLabel->size(), Qt::KeepAspectRatioByExpanding,
+                Qt::SmoothTransformation));
+        }
+    }
 }
 
 void MainWindow::showGamePage() {
     stack->setCurrentWidget(gamePage);
     refreshAll();
+}
+
+void MainWindow::updatePhaseUi() {
+    if (!tabs) return;
+    const bool school = phase == GamePhase::SchoolFirst || phase == GamePhase::SchoolSecond;
+    const bool winter = phase == GamePhase::Winter;
+    const bool angel = phase == GamePhase::AngelShop;
+    const bool dungeon = phase == GamePhase::Dungeon;
+    const bool ending = phase == GamePhase::Ending;
+
+    for (int i = 0; i < tabs->count(); ++i) {
+        const QString label = tabs->tabText(i);
+        bool visible = label == "轮回总览" || label == "角色编队" || label == "背包" || label == "任务" || label == "轮回游记";
+        if (label == "排课") visible = school || winter;
+        if (label == "天使商店") visible = angel;
+        if (label == "地窟/恶魔商店") visible = dungeon;
+        tabs->setTabVisible(i, visible);
+    }
+
+    if (school || winter) {
+        for (int i = 0; i < tabs->count(); ++i) if (tabs->tabText(i) == "排课") tabs->setCurrentIndex(i);
+    }
+    if (angel) {
+        for (int i = 0; i < tabs->count(); ++i) if (tabs->tabText(i) == "天使商店") tabs->setCurrentIndex(i);
+    }
+    if (dungeon) {
+        for (int i = 0; i < tabs->count(); ++i) if (tabs->tabText(i) == "地窟/恶魔商店") tabs->setCurrentIndex(i);
+    }
+    if (ending) {
+        for (int i = 0; i < tabs->count(); ++i) if (tabs->tabText(i) == "轮回总览") tabs->setCurrentIndex(i);
+    }
 }
 
 void MainWindow::refreshAll() {
@@ -356,6 +743,8 @@ void MainWindow::refreshAll() {
     refreshDemonShop();
     refreshDungeon();
     refreshCodex();
+    updateVisualPreviews();
+    updatePhaseUi();
 }
 
 void MainWindow::refreshSaveSlots() {
@@ -404,28 +793,53 @@ void MainWindow::refreshSchedulePreview() {
             }
         }
     }
+    if (scheduleRoleLabel) {
+        QString roleName = schedulingRoleIndex >= 0 && schedulingRoleIndex < party.size() ? party[schedulingRoleIndex].name : "未选择角色";
+        scheduleRoleLabel->setText(QString("当前为：%1 排课（%2/%3）").arg(roleName).arg(schedulingRoleIndex + 1).arg(party.size()));
+    }
     schedulePreviewLabel->setText(QString("本周预计盈利金币：%1 | 本周剩余活力：%2 | 前五天可安排所有行动，周末只能不上课/打工/补习班。%3")
         .arg(profit).arg(vigor).arg(details.isEmpty() ? "" : "\n" + details.join("\n")));
 }
 
 void MainWindow::refreshCharacters() {
     if (!characterList) return;
+    const int selectedRow = characterList->currentRow();
     characterList->clear();
+    characterList->setIconSize(QSize(92, 92));
     int activeIndex = 0;
     for (int i = 0; i < party.size(); ++i) {
         QString position = activeText(party[i], activeIndex);
         if (party[i].active) activeIndex++;
-        characterList->addItem(QString("%1 [%2]\n%3\n技能：\n%4")
-            .arg(roleText(party[i])).arg(position).arg(party[i].equipment.isEmpty() ? "装备：无" : "装备：" + QStringList(party[i].equipment.values()).join("、"))
+        const QString battleMarker = inBattle && i == currentBattleRole() ? "  <当前行动>" : "";
+        auto* item = new QListWidgetItem(QString("%1 [%2]%3\n%4\n技能：\n%5")
+            .arg(roleText(party[i])).arg(position).arg(battleMarker)
+            .arg(party[i].equipment.isEmpty() ? "装备：无" : "装备：" + QStringList(party[i].equipment.values()).join("、"))
             .arg(skillsText(party[i])));
+        const QPixmap sprite(professionSpritePath(party[i].profession));
+        if (!sprite.isNull()) item->setIcon(QIcon(sprite.scaled(92, 92, Qt::KeepAspectRatio, Qt::SmoothTransformation)));
+        characterList->addItem(item);
     }
+    if (selectedRow >= 0 && selectedRow < characterList->count()) characterList->setCurrentRow(selectedRow);
+    else if (!party.isEmpty()) characterList->setCurrentRow(0);
 }
 
 void MainWindow::refreshInventory() {
     if (!inventoryList) return;
+    const int currentRow = selectedInventoryRow;
     inventoryList->clear();
+    if (characterInventoryList) characterInventoryList->clear();
     for (int i = 0; i < inventory.size(); ++i) {
-        inventoryList->addItem(QString("%1. %2").arg(i + 1).arg(inventoryText(inventory[i])));
+        const QString text = QString("%1. %2").arg(i + 1).arg(inventoryText(inventory[i]));
+        inventoryList->addItem(text);
+        if (characterInventoryList) characterInventoryList->addItem(text);
+    }
+    const int row = currentRow >= 0 && currentRow < inventory.size() ? currentRow : (inventory.isEmpty() ? -1 : 0);
+    selectedInventoryRow = row;
+    QSignalBlocker inventoryBlocker(inventoryList);
+    inventoryList->setCurrentRow(row);
+    if (characterInventoryList) {
+        QSignalBlocker characterInventoryBlocker(characterInventoryList);
+        characterInventoryList->setCurrentRow(row);
     }
 }
 
@@ -438,11 +852,25 @@ void MainWindow::refreshTasks() {
             .arg(task.conditionType).arg(task.target).arg(task.progress).arg(task.need)
             .arg(task.rewardGold).arg(task.rewardDemonCoin).arg(task.rewardItem));
     }
+    if (taskHeaderButton) {
+        const TaskData* top = nullptr;
+        for (const auto& task : tasks) {
+            if (task.status == 1 || task.status == 0) { top = &task; break; }
+        }
+        const QString text = top
+            ? QString("当前任务：%1  [%2]  %3/%4    点击展开任务列表")
+                .arg(top->name).arg(taskStatusText(top->status)).arg(top->progress).arg(top->need)
+            : QString("任务：所有任务已完成    点击展开任务列表");
+        taskHeaderButton->setText(text);
+    }
 }
 
 void MainWindow::refreshAngelShop() {
     if (!angelShopList) return;
     angelShopList->clear();
+    if (auto* balance = gamePage->findChild<QLabel*>("angelBalance")) {
+        balance->setText(QString("当前资产：金币 %1    背包 %2/%3").arg(gold).arg(inventory.size()).arg(kInventoryLimit));
+    }
     for (int i = 0; i < angelGoods.size(); ++i) {
         int price = std::max(angelGoods[i].price * (100 - std::min(50, angelDiscount)) / 100, angelGoods[i].price / 2);
         angelShopList->addItem(QString("%1. [%2/%3] %4 | 价格：%5金币 | %6")
@@ -454,6 +882,9 @@ void MainWindow::refreshAngelShop() {
 void MainWindow::refreshDemonShop() {
     if (!demonShopList) return;
     demonShopList->clear();
+    if (auto* balance = gamePage->findChild<QLabel*>("demonBalance")) {
+        balance->setText(QString("当前资产：恶魔币 %1    背包 %2/%3").arg(demonCoin).arg(inventory.size()).arg(kInventoryLimit));
+    }
     if (demonGoods.isEmpty()) {
         demonShopList->addItem("恶魔商店尚未刷新：进入地窟每层第一个房间固定刷新。");
         return;
@@ -469,41 +900,186 @@ void MainWindow::refreshDemonShop() {
 void MainWindow::refreshDungeon() {
     if (!dungeonRoomList || !dungeonLabel) return;
     dungeonRoomList->clear();
+    dungeonRoomList->setIconSize(QSize(82, 82));
     dungeonLabel->setText(QString("地窟层数：%1/7 | 当前房间：%2 | 战斗状态：%3 | 恶魔币：%4\n%5")
         .arg(dungeonLayer).arg(currentRoom + 1).arg(inBattle ? "战斗中" : "非战斗").arg(demonCoin)
         .arg(battleStatusText()));
     for (int i = 0; i < rooms.size(); ++i) {
+        const bool revealed = rooms[i].visited || rooms.value(currentRoom).connections.contains(i) || i == currentRoom;
         QString type;
-        if (rooms[i].type == RoomType::DemonShop) type = "恶魔商店";
-        if (rooms[i].type == RoomType::Battle) type = "普通战斗";
-        if (rooms[i].type == RoomType::EliteBattle) type = "精英战斗+下一层通道";
-        if (rooms[i].type == RoomType::Chest) type = "宝箱房";
-        if (rooms[i].type == RoomType::Boss) type = "最终BOSS";
-        dungeonRoomList->addItem(QString("房间%1：%2 | %3").arg(i + 1).arg(type).arg(rooms[i].cleared ? "已完成" : "未完成"));
+        if (!revealed) type = "未知房间";
+        else if (rooms[i].type == RoomType::DemonShop) type = "恶魔商店";
+        else if (rooms[i].type == RoomType::Battle) type = "普通战斗";
+        else if (rooms[i].type == RoomType::EliteBattle) type = "精英战斗+下一层通道";
+        else if (rooms[i].type == RoomType::Chest) type = "宝箱房";
+        else if (rooms[i].type == RoomType::Boss) type = "最终BOSS";
+        auto* item = new QListWidgetItem(QString("房间%1：%2 | %3").arg(i + 1).arg(type).arg(rooms[i].cleared ? "已完成" : "未完成"));
+        if (revealed && !rooms[i].enemies.isEmpty()) {
+            const QPixmap sprite(enemySpritePath(rooms[i].enemies.first().name));
+            if (!sprite.isNull()) item->setIcon(QIcon(sprite.scaled(82, 82, Qt::KeepAspectRatio, Qt::SmoothTransformation)));
+        }
+        dungeonRoomList->addItem(item);
     }
+    rebuildDungeonMap();
     fightRoundBtn->setEnabled(inBattle);
     battleMedicineBtn->setEnabled(inBattle);
+    const bool atDemonShop = !rooms.isEmpty() && currentRoom >= 0 && currentRoom < rooms.size()
+        && rooms[currentRoom].type == RoomType::DemonShop && !inBattle;
+    if (auto* tradeBox = gamePage->findChild<QGroupBox*>("demonShopBox")) tradeBox->setVisible(atDemonShop);
+    if (auto* battleBox = gamePage->findChild<QGroupBox*>("battleBox")) battleBox->setVisible(inBattle);
+    if (auto* next = gamePage->findChild<QPushButton*>("nextLayerButton")) next->setVisible(nextLayerReady);
+    if (battleActionCombo && battleTargetList && battleTurnLabel) {
+        battleActionCombo->setVisible(inBattle);
+        battleTargetList->setVisible(inBattle);
+        battleTurnLabel->setVisible(inBattle);
+        battleActionCombo->clear();
+        battleTargetList->clear();
+        if (inBattle) {
+            int roleIndex = currentBattleRole();
+            if (roleIndex >= 0) {
+                const CharacterData& role = party[roleIndex];
+                battleTurnLabel->setText(QString("第%1回合：当前行动 %2（%3/%4）\n行动后将自动切换至下一站位角色。")
+                    .arg(battleRound).arg(role.name).arg(battleActorIndex + 1).arg(battleOrder.size()));
+                battleActionCombo->addItem("普通攻击");
+                if (auto* prof = professionByName(role.profession)) {
+                    for (const auto& skill : prof->skills()) {
+                        if (role.level >= skill.unlockLevel) battleActionCombo->addItem(QString::fromStdString(skill.name));
+                    }
+                }
+            }
+            for (int i = 0; i < battleEnemies.size(); ++i) {
+                if (battleEnemies[i].hp > 0) {
+                    auto* target = new QListWidgetItem(QString("%1  HP %2/%3").arg(battleEnemies[i].name).arg(battleEnemies[i].hp).arg(battleEnemies[i].maxHp));
+                    target->setData(Qt::UserRole, i);
+                    battleTargetList->addItem(target);
+                }
+            }
+            if (battleTargetList->count() > 0) battleTargetList->setCurrentRow(0);
+        }
+    }
 }
 
 void MainWindow::refreshCodex() {
     if (!codexList) return;
     codexList->clear();
+    codexList->setViewMode(QListView::IconMode);
+    codexList->setResizeMode(QListView::Adjust);
+    codexList->setMovement(QListView::Static);
+    codexList->setWrapping(true);
+    codexList->setSpacing(12);
+    codexList->setIconSize(QSize(136, 136));
+    codexList->setGridSize(QSize(245, 242));
     QStringList names = codex.keys();
     names.sort();
     for (const QString& name : names) {
         if (!encountered.value(name, false)) {
-            codexList->addItem(QString("%1：？？？").arg(name));
+            auto* item = new QListWidgetItem(QIcon(style()->standardIcon(QStyle::SP_MessageBoxQuestion)),
+                QString("未知单位\n？？？\n击败或遭遇后解锁"));
+            item->setTextAlignment(Qt::AlignCenter);
+            item->setToolTip("尚未遭遇该单位");
+            codexList->addItem(item);
             continue;
         }
         const auto& e = codex[name];
-        codexList->addItem(QString("%1 | 第%2层%3 | HP%4 攻%5 防%6 法抗%7 | 技能：%8")
-            .arg(e.name).arg(e.layer).arg(e.kind).arg(e.maxHp).arg(e.attack).arg(e.defense).arg(e.resist).arg(e.skills));
+        QString path = enemySpritePath(e.name);
+        if (path.isEmpty()) path = fallbackEnemySpritePath(e.layer);
+        const QPixmap sprite(path);
+        auto* item = new QListWidgetItem(sprite.isNull() ? QIcon() : QIcon(sprite.scaled(136, 136, Qt::KeepAspectRatio, Qt::SmoothTransformation)),
+            QString("%1\n第%2层 %3\nHP %4  攻 %5  防 %6\n%7")
+                .arg(e.name).arg(e.layer).arg(e.kind).arg(e.maxHp).arg(e.attack).arg(e.defense).arg(e.skills));
+        item->setTextAlignment(Qt::AlignCenter);
+        item->setToolTip(QString("法抗 %1\n技能：%2").arg(e.resist).arg(e.skills));
+        codexList->addItem(item);
     }
 }
 
 void MainWindow::appendLog(const QString& text) {
     if (!logText) return;
     logText->append(QString("[%1] %2").arg(QTime::currentTime().toString("HH:mm:ss"), text));
+}
+
+void MainWindow::updateVisualPreviews() {
+    auto animatePreview = [](QLabel* label) {
+        auto* effect = qobject_cast<QGraphicsOpacityEffect*>(label->graphicsEffect());
+        if (!effect) {
+            effect = new QGraphicsOpacityEffect(label);
+            label->setGraphicsEffect(effect);
+        }
+        effect->setOpacity(0.25);
+        auto* animation = new QPropertyAnimation(effect, "opacity", label);
+        animation->setDuration(220);
+        animation->setStartValue(0.25);
+        animation->setEndValue(1.0);
+        animation->start(QAbstractAnimation::DeleteWhenStopped);
+    };
+    const bool inDemonShop = phase == GamePhase::Dungeon && currentRoom >= 0
+        && currentRoom < rooms.size() && rooms[currentRoom].type == RoomType::DemonShop;
+    const bool inChestRoom = phase == GamePhase::Dungeon && currentRoom >= 0
+        && currentRoom < rooms.size() && rooms[currentRoom].type == RoomType::Chest;
+    const QPixmap scene(phase == GamePhase::Dungeon
+        ? scenePath(true, dungeonLayer, inDemonShop, inChestRoom)
+        : phaseScenePath(static_cast<int>(phase)));
+    if (overviewSceneLabel) {
+        if (scene.isNull()) {
+            overviewSceneLabel->setPixmap(QPixmap());
+            overviewSceneLabel->setText(QString::fromUtf8("当前场景资源未找到"));
+        } else {
+            overviewSceneLabel->setText(QString());
+            overviewSceneLabel->setPixmap(scene.scaled(overviewSceneLabel->size(), Qt::KeepAspectRatioByExpanding,
+                Qt::SmoothTransformation));
+            animatePreview(overviewSceneLabel);
+        }
+    }
+
+    if (dungeonSceneLabel) {
+        const QPixmap dungeonScene(scenePath(true, dungeonLayer));
+        if (dungeonScene.isNull()) {
+            dungeonSceneLabel->setPixmap(QPixmap());
+            dungeonSceneLabel->setText(QString::fromUtf8("当前层场景图暂不可用"));
+        } else {
+            dungeonSceneLabel->setText(QString());
+            dungeonSceneLabel->setPixmap(dungeonScene.scaled(dungeonSceneLabel->size(), Qt::KeepAspectRatioByExpanding,
+                Qt::SmoothTransformation));
+            animatePreview(dungeonSceneLabel);
+        }
+    }
+
+    if (characterPreviewLabel) {
+        const int row = characterList ? characterList->currentRow() : -1;
+        const QString path = row >= 0 && row < party.size() ? professionSpritePath(party[row].profession) : QString();
+        const QPixmap sprite(path);
+        if (sprite.isNull()) {
+            characterPreviewLabel->setPixmap(QPixmap());
+            characterPreviewLabel->setText(QString::fromUtf8("选择角色查看立绘"));
+        } else {
+            characterPreviewLabel->setText(QString());
+            characterPreviewLabel->setPixmap(sprite.scaled(characterPreviewLabel->size(), Qt::KeepAspectRatio,
+                Qt::SmoothTransformation));
+            animatePreview(characterPreviewLabel);
+        }
+    }
+
+    if (dungeonPreviewLabel) {
+        QString name;
+        if (inBattle && !battleEnemies.isEmpty()) {
+            name = battleEnemies.first().name;
+        } else {
+            const int row = dungeonRoomList ? dungeonRoomList->currentRow() : -1;
+            if (row >= 0 && row < rooms.size() && !rooms[row].enemies.isEmpty()) name = rooms[row].enemies.first().name;
+        }
+        QString path = enemySpritePath(name);
+        if (path.isEmpty()) path = fallbackEnemySpritePath(dungeonLayer);
+        const QPixmap sprite(path);
+        if (sprite.isNull()) {
+            dungeonPreviewLabel->setPixmap(QPixmap());
+            dungeonPreviewLabel->setText(QString::fromUtf8("当前层敌方模型暂不可用"));
+        } else {
+            dungeonPreviewLabel->setText(QString());
+            dungeonPreviewLabel->setPixmap(sprite.scaled(dungeonPreviewLabel->size(), Qt::KeepAspectRatio,
+                Qt::SmoothTransformation));
+            animatePreview(dungeonPreviewLabel);
+        }
+    }
 }
 
 void MainWindow::slotClicked() {
@@ -545,6 +1121,8 @@ void MainWindow::createInSelectedSlot() {
     }
     for (int i = 0; i < party.size(); ++i) party[i].active = i < 3;
     phase = GamePhase::SchoolFirst;
+    schedulingRoleIndex = 0;
+    loadScheduleForCurrentRole();
     addTaskProgress("创建角色", "任意", 1);
     writeGame(currentSlot);
     showGamePage();
@@ -574,6 +1152,7 @@ void MainWindow::resetGameForNewRun(bool keepGrowth) {
     int oldDemonFriend = keepGrowth ? demonFriendBonus : 0;
     int oldLoop = keepGrowth ? loopCount + 1 : 1;
     party.clear();
+    if (!keepGrowth) encountered.clear();
     inventory.clear();
     rooms.clear();
     battleEnemies.clear();
@@ -597,6 +1176,8 @@ void MainWindow::resetGameForNewRun(bool keepGrowth) {
     firstDemonShopBought = false;
     equippedOnce = false;
     formationChanged = false;
+    schedulingRoleIndex = 0;
+    actedPlayers.clear();
     phase = GamePhase::SchoolFirst;
     setupData();
 }
@@ -657,6 +1238,7 @@ bool MainWindow::loadGame(int slot) {
         return false;
     }
     currentSlot = slot;
+    encountered.clear();
     setupData();
     loopCount = s.value("state/loopCount", 1).toInt();
     semester = s.value("state/semester", 1).toInt();
@@ -682,6 +1264,17 @@ bool MainWindow::loadGame(int slot) {
     equippedOnce = s.value("flags/equippedOnce", false).toBool();
     formationChanged = s.value("flags/formationChanged", false).toBool();
     if (dungeonLayer > 0) buildDungeonLayer(dungeonLayer);
+    savedSchedules.clear();
+    keepSchedulePreset.clear();
+    s.beginGroup("schedules");
+    for (const auto& prof : professions) {
+        const QString key = QString::fromStdString(prof->name());
+        keepSchedulePreset[key] = s.value(key + "/keep", false).toBool();
+        savedSchedules[key] = QVector<QString>::fromList(s.value(key + "/actions").toStringList());
+    }
+    s.endGroup();
+    schedulingRoleIndex = 0;
+    loadScheduleForCurrentRole();
     appendLog(QString("读取存档%1成功。").arg(slot));
     return true;
 }
@@ -713,6 +1306,15 @@ void MainWindow::writeGame(int slot) {
     s.setValue("flags/firstDemonShopBought", firstDemonShopBought);
     s.setValue("flags/equippedOnce", equippedOnce);
     s.setValue("flags/formationChanged", formationChanged);
+    s.remove("schedules");
+    s.beginGroup("schedules");
+    for (auto it = keepSchedulePreset.cbegin(); it != keepSchedulePreset.cend(); ++it) {
+        s.setValue(it.key() + "/keep", it.value());
+        QStringList actions;
+        for (const QString& action : savedSchedules.value(it.key())) actions << action;
+        s.setValue(it.key() + "/actions", actions);
+    }
+    s.endGroup();
     s.sync();
     loadSlotMeta();
 }
@@ -727,51 +1329,49 @@ void MainWindow::runSemester() {
         QMessageBox::warning(this, "不能执行课表", "当前阶段不是上学学期。");
         return;
     }
-    int weeklyProfit = 0;
-    int weeklyVigor = 100 + initialVigorBonus;
-    for (int day = 0; day < kDays; ++day) {
-        for (int half = 0; half < kHalfDays; ++half) {
-            auto* combo = qobject_cast<QComboBox*>(scheduleTable->cellWidget(day, half));
-            QString action = combo ? combo->currentText() : "不上课";
-            weeklyVigor -= actionVigorCost(action);
-            weeklyProfit += actionGoldChange(action, workGoldBonus);
-            double effectScale = 1.0;
-            if (action == "补习班") {
-                weeklyProfit -= 35;
-                effectScale = 0.5;
-                action = "专业课";
-            }
-            for (auto& role : party) {
-                if (action == "大物课") {
-                    role.physicalAttack += int(1 * effectScale);
-                    role.physicalDefense += int(1 * effectScale);
-                } else if (action == "语文课") {
-                    angelDiscount = std::min(50, angelDiscount + int(1 * effectScale));
-                } else if (action == "外语课") {
-                    demonDiscount = std::min(50, demonDiscount + int(1 * effectScale));
-                } else if (action == "化学课") {
-                    role.magicResistance += int(2 * effectScale);
-                } else if (action == "高数课") {
-                    role.physicalDefense += int(2 * effectScale);
-                } else if (action == "专业课") {
-                    role.physicalAttack += int(2 * effectScale);
-                    role.magicAttack += int(2 * effectScale);
-                } else if (action == "体育课") {
-                    role.maxHp += int(4 * effectScale);
-                    role.hp = role.maxHp;
-                    role.vigor += int(3 * effectScale);
-                } else if (action == "不上课") {
-                    role.vigor += 2;
-                }
+    if (schedulingRoleIndex < party.size()) {
+        QVector<QString> actions;
+        for (int day = 0; day < kDays; ++day) {
+            for (int half = 0; half < kHalfDays; ++half) {
+                auto* combo = qobject_cast<QComboBox*>(scheduleTable->cellWidget(day, half));
+                actions.push_back(combo ? combo->currentText() : QString::fromUtf8("不上课"));
             }
         }
+        const QString key = party[schedulingRoleIndex].profession;
+        const auto keep = QMessageBox::question(this, "保留课表", QString("是否保留 %1 的课表预设？下次将自动填充。").arg(party[schedulingRoleIndex].name),
+            QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
+        keepSchedulePreset[key] = keep == QMessageBox::Yes;
+        if (keepSchedulePreset[key]) savedSchedules[key] = actions;
+        else savedSchedules.remove(key);
+
+        int vigor = 100 + initialVigorBonus;
+        int profit = 0;
+        CharacterData& role = party[schedulingRoleIndex];
+        for (const QString& action : actions) {
+            vigor -= actionVigorCost(action);
+            profit += actionGoldChange(action, workGoldBonus);
+            if (action == QString::fromUtf8("大物课")) { role.physicalAttack += 1; role.physicalDefense += 1; }
+            else if (action == QString::fromUtf8("语文课")) angelDiscount = std::min(50, angelDiscount + 1);
+            else if (action == QString::fromUtf8("外语课")) demonDiscount = std::min(50, demonDiscount + 1);
+            else if (action == QString::fromUtf8("化学课")) role.magicResistance += 2;
+            else if (action == QString::fromUtf8("高数课")) role.physicalDefense += 2;
+            else if (action == QString::fromUtf8("专业课")) { role.physicalAttack += 2; role.magicAttack += 2; }
+            else if (action == QString::fromUtf8("体育课")) { role.maxHp += 4; role.hp = role.maxHp; }
+        }
+        gold += profit * 20;
+        addExp(role, 1200);
+        appendLog(QString("%1 的课表已确认：学期收益 %2 金币。").arg(role.name).arg(profit * 20));
+        schedulingRoleIndex++;
+        if (schedulingRoleIndex < party.size()) {
+            loadScheduleForCurrentRole();
+            refreshAll();
+            return;
+        }
+        schedulingRoleIndex = 0;
     }
-    int totalProfit = weeklyProfit * 20;
-    gold += totalProfit;
-    for (auto& role : party) addExp(role, 60 * 20);
+
     addTaskProgress("选课", "任意", 1);
-    appendLog(QString("第%1学期结束：20周课表执行完毕，金币变化%2，本周剩余活力模板为%3。")
-        .arg(semester).arg(totalProfit).arg(weeklyVigor));
+    appendLog(QString("第%1学期：所有角色课表已确认并结算完成。").arg(semester));
     if (semester == 1) {
         phase = GamePhase::Winter;
         QMessageBox::information(this, "寒假到来", "第一学期结束，请选择寒假休息或寒假打工。");
@@ -795,6 +1395,8 @@ void MainWindow::winterRest() {
     addTaskProgress("寒假", "任意", 1);
     semester = 2;
     phase = GamePhase::SchoolSecond;
+    schedulingRoleIndex = 0;
+    loadScheduleForCurrentRole();
     appendLog("寒假休息：全体最大生命值提升25，进入第二学期排课。");
     refreshAll();
     writeGame(currentSlot);
@@ -810,6 +1412,8 @@ void MainWindow::winterWork() {
     addTaskProgress("寒假", "任意", 1);
     semester = 2;
     phase = GamePhase::SchoolSecond;
+    schedulingRoleIndex = 0;
+    loadScheduleForCurrentRole();
     appendLog(QString("寒假打工：获得额外金币%1，进入第二学期排课。").arg(gain));
     refreshAll();
     writeGame(currentSlot);
@@ -858,6 +1462,10 @@ void MainWindow::buyDemonItem() {
         QMessageBox::warning(this, "无法购买", "恶魔商店只在地窟内开放。");
         return;
     }
+    if (currentRoom < 0 || currentRoom >= rooms.size() || rooms[currentRoom].type != RoomType::DemonShop) {
+        QMessageBox::warning(this, "不在商店", "请先移动到当前层入口的恶魔商店房间后再交易。");
+        return;
+    }
     int row = demonShopList->currentRow();
     if (row < 0 || row >= demonGoods.size()) return;
     ItemData item = demonGoods[row];
@@ -871,6 +1479,7 @@ void MainWindow::buyDemonItem() {
         return;
     }
     demonCoin -= price;
+    for (auto& role : party) role.vigor = std::max(0, role.vigor - 5);
     if (item.name == "恶魔之友") demonFriendBonus += 8;
     else addItem(item);
     firstDemonShopBought = true;
@@ -883,6 +1492,10 @@ void MainWindow::buyDemonItem() {
 void MainWindow::sellEquipmentToDemon() {
     if (phase != GamePhase::Dungeon || dungeonLayer <= 0) {
         QMessageBox::warning(this, "无法出售", "只能在地窟恶魔商店出售装备。");
+        return;
+    }
+    if (currentRoom < 0 || currentRoom >= rooms.size() || rooms[currentRoom].type != RoomType::DemonShop) {
+        QMessageBox::warning(this, "不在商店", "请先移动到当前层入口的恶魔商店房间后再交易。");
         return;
     }
     int row = inventoryList->currentRow();
@@ -898,6 +1511,7 @@ void MainWindow::sellEquipmentToDemon() {
     QString name = inventory[row].name;
     inventory.removeAt(row);
     demonCoin += value;
+    for (auto& role : party) role.vigor = std::max(0, role.vigor - 5);
     appendLog(QString("出售装备：%1，获得恶魔币%2。").arg(name).arg(value));
     refreshAll();
     writeGame(currentSlot);
@@ -934,7 +1548,7 @@ void MainWindow::useInventoryItem() {
         useBattleMedicine();
         return;
     }
-    int row = inventoryList->currentRow();
+    int row = selectedInventoryRow;
     if (row < 0 || row >= inventory.size() || party.isEmpty()) {
         QMessageBox::information(this, "请选择物品", "请先在背包列表选中要使用的物品。");
         return;
@@ -962,7 +1576,7 @@ void MainWindow::useInventoryItem() {
 }
 
 void MainWindow::discardInventoryItem() {
-    int row = inventoryList->currentRow();
+    int row = selectedInventoryRow;
     if (row < 0 || row >= inventory.size()) {
         QMessageBox::information(this, "请选择物品", "请先在背包列表选中要丢弃的物品。");
         return;
@@ -975,8 +1589,12 @@ void MainWindow::discardInventoryItem() {
 }
 
 void MainWindow::equipSelectedItem() {
+    if (inBattle) {
+        QMessageBox::information(this, "战斗中不可换装", "请在进入战斗房前于角色信息页面完成装备调整。");
+        return;
+    }
     int roleRow = characterList->currentRow();
-    int itemRow = inventoryList->currentRow();
+    int itemRow = selectedInventoryRow;
     if (roleRow < 0 || roleRow >= party.size() || itemRow < 0 || itemRow >= inventory.size()) {
         QMessageBox::warning(this, "请选择", "需要在角色列表选角色，并在背包列表选装备。");
         return;
@@ -1029,6 +1647,22 @@ void MainWindow::claimTask() {
     appendLog(QString("领取任务奖励：%1。").arg(tasks[row].name));
     refreshAll();
     writeGame(currentSlot);
+}
+
+void MainWindow::moveTaskUp() {
+    const int row = taskList ? taskList->currentRow() : -1;
+    if (row <= 0 || row >= tasks.size()) return;
+    std::swap(tasks[row], tasks[row - 1]);
+    refreshTasks();
+    taskList->setCurrentRow(row - 1);
+}
+
+void MainWindow::moveTaskDown() {
+    const int row = taskList ? taskList->currentRow() : -1;
+    if (row < 0 || row + 1 >= tasks.size()) return;
+    std::swap(tasks[row], tasks[row + 1]);
+    refreshTasks();
+    taskList->setCurrentRow(row + 1);
 }
 
 void MainWindow::addTaskProgress(const QString& type, const QString& target, int amount) {
@@ -1085,6 +1719,8 @@ void MainWindow::buildDungeonLayer(int layer) {
     if (layer == 7) {
         rooms.push_back({RoomType::DemonShop, false, {}});
         rooms.push_back({RoomType::Boss, false, makeEnemyGroup(7, false, true)});
+        rooms[0].connections = {1}; rooms[0].gridRow = 1; rooms[0].gridColumn = 0;
+        rooms[1].connections = {0}; rooms[1].gridRow = 1; rooms[1].gridColumn = 2;
     } else {
         rooms.push_back({RoomType::DemonShop, false, {}});
         QVector<RoomType> rest = {RoomType::Chest, RoomType::Battle, RoomType::Battle, RoomType::Battle, RoomType::Battle, RoomType::EliteBattle};
@@ -1094,13 +1730,97 @@ void MainWindow::buildDungeonLayer(int layer) {
             QVector<EnemyData> enemies = (type == RoomType::Chest) ? QVector<EnemyData>{} : makeEnemyGroup(layer, elite, false);
             rooms.push_back({type, false, enemies});
         }
+        // 入口商店与精英出口之间的网状分支，所有房间最多四向相连。
+        const QVector<QPair<int, int>> positions = {{1, 0}, {0, 1}, {1, 1}, {2, 1}, {0, 2}, {1, 2}, {1, 3}};
+        const QVector<QVector<int>> links = {{1, 2}, {0, 2, 4}, {0, 1, 3, 5}, {2, 5}, {1, 5}, {2, 3, 4, 6}, {5}};
+        int eliteIndex = 1;
+        for (int i = 1; i < rooms.size(); ++i) if (rooms[i].type == RoomType::EliteBattle) eliteIndex = i;
+        if (eliteIndex != 6) std::swap(rooms[eliteIndex], rooms[6]);
+        for (int i = 0; i < rooms.size(); ++i) {
+            rooms[i].gridRow = positions[i].first;
+            rooms[i].gridColumn = positions[i].second;
+            rooms[i].connections = links[i];
+        }
     }
+    rooms[0].visited = true;
     for (const auto& room : rooms) {
         for (const auto& enemy : room.enemies) {
             codex[enemy.name] = enemy;
             if (!encountered.contains(enemy.name)) encountered[enemy.name] = false;
         }
     }
+    rebuildDungeonMap();
+}
+
+void MainWindow::rebuildDungeonMap() {
+    if (!dungeonMapGrid) return;
+    while (QLayoutItem* item = dungeonMapGrid->takeAt(0)) {
+        if (item->widget()) item->widget()->deleteLater();
+        delete item;
+    }
+    for (int i = 0; i < rooms.size(); ++i) {
+        const RoomData& room = rooms[i];
+        QString title;
+        const bool adjacent = rooms.value(currentRoom).connections.contains(i);
+        const bool revealed = room.visited || adjacent || i == currentRoom;
+        if (!revealed) title = "？\n未知房间";
+        else if (room.type == RoomType::DemonShop) title = "入口\n恶魔商店";
+        else if (room.type == RoomType::Chest) title = room.cleared ? "空白房" : "宝箱房";
+        else if (room.type == RoomType::EliteBattle) title = room.cleared ? "出口已开启" : "精英出口";
+        else if (room.type == RoomType::Boss) title = room.cleared ? "终局已完成" : "最终BOSS";
+        else title = room.cleared ? "空白房" : "战斗房";
+        auto* button = new QPushButton(title, gamePage);
+        button->setProperty("room", i);
+        button->setMinimumSize(116, 82);
+        const bool current = i == currentRoom;
+        button->setEnabled((current || adjacent) && !inBattle);
+        button->setStyleSheet(current
+            ? "background:#f39a73;color:white;border:3px solid #ffffff;border-radius:10px;font-weight:800;"
+            : (!revealed ? "background:#d6e0e5;color:#617784;border:2px dashed #aebfc9;border-radius:10px;font-weight:700;"
+                : (room.cleared ? "background:#dfeaf2;color:#587187;border:2px solid #b9d1e6;border-radius:10px;" : "background:#ffffff;color:#29425c;border:2px solid #78a9cb;border-radius:10px;")));
+        connect(button, &QPushButton::clicked, this, &MainWindow::moveToMapRoom);
+        dungeonMapGrid->addWidget(button, room.gridRow, room.gridColumn);
+    }
+}
+
+void MainWindow::moveToMapRoom() {
+    if (inBattle) {
+        QMessageBox::information(this, "房门封锁", "战斗尚未结束，必须击败敌人后才能离开房间。");
+        return;
+    }
+    auto* button = qobject_cast<QPushButton*>(sender());
+    if (!button) return;
+    const int destination = button->property("room").toInt();
+    if (destination != currentRoom && !rooms[currentRoom].connections.contains(destination)) return;
+    currentRoom = destination;
+    RoomData& room = rooms[currentRoom];
+    room.visited = true;
+    if (!room.cleared && room.type == RoomType::DemonShop) {
+        for (auto& role : party) role.vigor = std::max(0, role.vigor - 5);
+        room.cleared = true;
+        appendLog(QString("进入第%1层恶魔商店：可消耗恶魔币交易并继续探索相邻房间。").arg(dungeonLayer));
+    } else if (!room.cleared && room.type != RoomType::Chest) {
+        for (auto& role : party) role.vigor = std::max(0, role.vigor - 5);
+        startBattle(room.enemies, room.type == RoomType::EliteBattle, room.type == RoomType::Boss);
+    }
+    if (!room.cleared && room.type == RoomType::Chest) exploreRoom();
+    refreshAll();
+}
+
+void MainWindow::enterNextDungeonLayer() {
+    if (!nextLayerReady) {
+        QMessageBox::information(this, "出口未开启", "需要先完成本层精英房，才能进入下一层。");
+        return;
+    }
+    if (dungeonLayer >= 7) return;
+    for (auto& role : party) role.vigor = std::max(0, role.vigor - 5);
+    dungeonLayer++;
+    currentRoom = 0;
+    nextLayerReady = false;
+    buildDungeonLayer(dungeonLayer);
+    appendLog(QString("进入第%1层地窟，无法返回上一层。").arg(dungeonLayer));
+    refreshAll();
+    writeGame(currentSlot);
 }
 
 QVector<MainWindow::EnemyData> MainWindow::makeEnemyGroup(int layer, bool elite, bool boss) const {
@@ -1227,49 +1947,82 @@ void MainWindow::startBattle(const QVector<EnemyData>& enemies, bool elite, bool
         encountered[e.name] = true;
     }
     inBattle = true;
+    actedPlayers.clear();
+    battleRound = 1;
+    battleOrder.clear();
+    for (int i = 0; i < party.size(); ++i) {
+        if (party[i].active && party[i].hp > 0) battleOrder.push_back(i);
+    }
+    battleActorIndex = 0;
     QString kind = boss ? "最终BOSS" : (elite ? "精英战斗" : "普通战斗");
     addTaskProgress("开战", "任意", 1);
-    appendLog(QString("进入%1：%2。平均等级决定先后手，等级相同我方先手。").arg(kind).arg(battleEnemies.first().name));
+    appendLog(QString("进入%1：%2。按编队站位顺序依次行动，三名角色行动后敌方全体行动。").arg(kind).arg(battleEnemies.first().name));
 }
 
 void MainWindow::fightOneRound() {
     if (!inBattle) return;
-    double playerAvg = 0;
-    for (const auto& r : party) if (r.active) playerAvg += r.level;
-    playerAvg = activeRoleCount() == 0 ? 0 : playerAvg / activeRoleCount();
-    double enemyAvg = dungeonLayer + (battleEnemies.first().elite ? 1.5 : 0) + (battleEnemies.first().boss ? 4 : 0);
-    bool playerFirst = playerAvg >= enemyAvg;
+    const int roleIndex = currentBattleRole();
+    if (roleIndex < 0) return;
+    CharacterData& role = party[roleIndex];
+    int targetIndex = battleTargetList && battleTargetList->currentItem()
+        ? battleTargetList->currentItem()->data(Qt::UserRole).toInt() : firstAliveEnemy();
+    if (targetIndex < 0 || targetIndex >= battleEnemies.size() || battleEnemies[targetIndex].hp <= 0) targetIndex = firstAliveEnemy();
+    if (targetIndex < 0) return;
 
-    auto playerTurn = [this]() {
-        for (auto& role : party) {
-            if (!role.active || role.hp <= 0) continue;
-            if (role.battleStun > 0) {
-                role.battleStun--;
-                appendLog(QString("%1 处于眩晕，无法行动。").arg(role.name));
-                continue;
+    QString action = battleActionCombo ? battleActionCombo->currentText() : "普通攻击";
+    double scale = 1.0;
+    int mpCost = 0;
+    if (action != "普通攻击") {
+        if (auto* prof = professionByName(role.profession)) {
+            for (const auto& skill : prof->skills()) {
+                if (QString::fromStdString(skill.name) == action) { scale = 1.0 + std::min(1.5, skill.hpCostPercent / 100.0); mpCost = skill.mpCost; break; }
             }
-            int enemyIndex = firstAliveEnemy();
-            if (enemyIndex < 0) break;
-            auto* prof = professionByName(role.profession);
-            QString skillName = prof ? QString::fromStdString(prof->skills().front().name) : "普通攻击";
-            int dmg = damage(std::max(role.physicalAttack, role.magicAttack), battleEnemies[enemyIndex].defense, 1.0);
-            battleEnemies[enemyIndex].hp = std::max(0, battleEnemies[enemyIndex].hp - dmg);
-            appendLog(QString("%1 使用 %2 攻击 %3，造成%4伤害。").arg(role.name).arg(skillName).arg(battleEnemies[enemyIndex].name).arg(dmg));
         }
-    };
-
-    if (playerFirst) {
-        playerTurn();
-        endBattleIfNeeded();
-        if (inBattle) enemyTurn();
-    } else {
-        enemyTurn();
-        endBattleIfNeeded();
-        if (inBattle) playerTurn();
     }
+    if (role.mp < mpCost) {
+        QMessageBox::information(this, "蓝量不足", "当前蓝量不足以使用这个技能。");
+        return;
+    }
+    role.mp -= mpCost;
+    const int power = std::max(role.physicalAttack, role.magicAttack);
+    const int dmg = damage(power, battleEnemies[targetIndex].defense, scale);
+    battleEnemies[targetIndex].hp = std::max(0, battleEnemies[targetIndex].hp - dmg);
+    actedPlayers.insert(roleIndex);
+    appendLog(QString("%1 使用 %2 攻击 %3，造成%4伤害。").arg(role.name).arg(action).arg(battleEnemies[targetIndex].name).arg(dmg));
     endBattleIfNeeded();
+    resolveEnemyTurnIfRoundComplete();
     refreshAll();
     writeGame(currentSlot);
+}
+
+void MainWindow::resolveEnemyTurnIfRoundComplete() {
+    advanceBattleActor();
+}
+
+int MainWindow::currentBattleRole() const {
+    if (!inBattle || battleActorIndex < 0 || battleActorIndex >= battleOrder.size()) return -1;
+    const int roleIndex = battleOrder[battleActorIndex];
+    return roleIndex >= 0 && roleIndex < party.size() && party[roleIndex].active && party[roleIndex].hp > 0 ? roleIndex : -1;
+}
+
+void MainWindow::advanceBattleActor() {
+    if (!inBattle) return;
+    ++battleActorIndex;
+    while (battleActorIndex < battleOrder.size()) {
+        const int roleIndex = battleOrder[battleActorIndex];
+        if (roleIndex >= 0 && roleIndex < party.size() && party[roleIndex].active && party[roleIndex].hp > 0) break;
+        ++battleActorIndex;
+    }
+    if (battleActorIndex < battleOrder.size()) return;
+    enemyTurn();
+    endBattleIfNeeded();
+    actedPlayers.clear();
+    battleRound++;
+    battleOrder.clear();
+    for (int i = 0; i < party.size(); ++i) {
+        if (party[i].active && party[i].hp > 0) battleOrder.push_back(i);
+    }
+    battleActorIndex = 0;
 }
 
 void MainWindow::enemyTurn() {
@@ -1333,12 +2086,8 @@ void MainWindow::endBattleIfNeeded() {
             QMessageBox::information(this, "通关结局", "打破诅咒，所有角色逃离轮回。");
         } else if (elite) {
             addTaskProgress("通层", QString::number(dungeonLayer), 1);
-            if (dungeonLayer < 7) {
-                dungeonLayer++;
-                currentRoom = 0;
-                buildDungeonLayer(dungeonLayer);
-                appendLog(QString("精英房连接下一层通道，进入第%1层。").arg(dungeonLayer));
-            }
+            nextLayerReady = dungeonLayer < 7;
+            appendLog("精英房已完成：下一层出口已开启，确认后将不可返回本层。");
         }
         appendLog(QString("战斗胜利：获得经验%1，恶魔币%2，掉落3件装备。").arg(totalExp).arg(totalCoin));
     } else if (alivePlayerCount() == 0) {
@@ -1354,7 +2103,10 @@ void MainWindow::nextLoopAfterDeath() {
     int keepVigor = initialVigorBonus;
     int keepWork = workGoldBonus;
     int keepDemon = demonFriendBonus;
+    const QMap<QString, bool> keepEncountered = encountered;
     resetGameForNewRun(true);
+    encountered = keepEncountered;
+    registerCodexEnemies();
     initialGoldBonus = keepGold;
     initialVigorBonus = keepVigor;
     workGoldBonus = keepWork;
@@ -1373,7 +2125,7 @@ void MainWindow::nextLoopAfterDeath() {
 
 void MainWindow::useBattleMedicine() {
     if (!inBattle) return;
-    int row = inventoryList->currentRow();
+    int row = selectedInventoryRow;
     if (row < 0 || row >= inventory.size()) {
         QMessageBox::information(this, "请选择药品", "请先在背包列表选中战斗中要使用的药品或消耗品。");
         return;
@@ -1383,7 +2135,7 @@ void MainWindow::useBattleMedicine() {
         QMessageBox::warning(this, "无法使用", "食品无法在战斗中使用，只有药品/战斗消耗品可用。");
         return;
     }
-    int roleIndex = selectedRoleOrFirstAlive();
+    const int roleIndex = currentBattleRole();
     if (roleIndex < 0) return;
     CharacterData& role = party[roleIndex];
     if (item.name == "阿司匹林" || item.name == "神圣药水") {
@@ -1397,15 +2149,19 @@ void MainWindow::useBattleMedicine() {
         }
     }
     inventory.removeAt(row);
+    actedPlayers.insert(roleIndex);
     appendLog(QString("%1 战斗中使用 %2，行动结束。").arg(role.name).arg(item.name));
     endBattleIfNeeded();
-    if (inBattle) enemyTurn();
-    endBattleIfNeeded();
+    resolveEnemyTurnIfRoundComplete();
     refreshAll();
     writeGame(currentSlot);
 }
 
 void MainWindow::setFormationOneFront() {
+    if (inBattle) {
+        QMessageBox::information(this, "战斗中不可编队", "请在进入战斗房前完成编队和站位调整。");
+        return;
+    }
     formationType = 1;
     formationChanged = true;
     addTaskProgress("编队", "任意", 1);
@@ -1413,6 +2169,10 @@ void MainWindow::setFormationOneFront() {
 }
 
 void MainWindow::setFormationTwoFront() {
+    if (inBattle) {
+        QMessageBox::information(this, "战斗中不可编队", "请在进入战斗房前完成编队和站位调整。");
+        return;
+    }
     formationType = 2;
     formationChanged = true;
     addTaskProgress("编队", "任意", 1);
@@ -1420,6 +2180,10 @@ void MainWindow::setFormationTwoFront() {
 }
 
 void MainWindow::toggleSelectedRoleActive() {
+    if (inBattle) {
+        QMessageBox::information(this, "战斗中不可编队", "请在进入战斗房前完成编队和站位调整。");
+        return;
+    }
     int row = characterList->currentRow();
     if (row < 0 || row >= party.size()) return;
     if (party[row].active) {
@@ -1442,6 +2206,10 @@ void MainWindow::toggleSelectedRoleActive() {
 }
 
 void MainWindow::moveRoleUp() {
+    if (inBattle) {
+        QMessageBox::information(this, "战斗中不可编队", "请在进入战斗房前完成编队和站位调整。");
+        return;
+    }
     int row = characterList->currentRow();
     if (row > 0 && row < party.size()) {
         std::swap(party[row], party[row - 1]);
@@ -1452,6 +2220,10 @@ void MainWindow::moveRoleUp() {
 }
 
 void MainWindow::moveRoleDown() {
+    if (inBattle) {
+        QMessageBox::information(this, "战斗中不可编队", "请在进入战斗房前完成编队和站位调整。");
+        return;
+    }
     int row = characterList->currentRow();
     if (row >= 0 && row + 1 < party.size()) {
         std::swap(party[row], party[row + 1]);

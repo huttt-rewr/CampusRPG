@@ -1,9 +1,15 @@
 # Build
-release/
+release/*.o
+release/*.cpp
+release/moc_predefs.h
+release/.qmake.stash
+release/Makefile
+release/Makefile.Debug
+release/Makefile.Release
+release/object_script.*
 debug/
 *.o
 *.obj
-*.exe
 moc_*.cpp
 moc_predefs.h
 .qmake.stash
@@ -93,3 +99,18 @@ Testing/
 # OS
 .DS_Store
 Thumbs.db
+
+# Claude
+.claude/
+
+# Release runtime files (keep these for portable launch)
+!release/CampusRPG_GUI.exe
+!release/Qt5Core.dll
+!release/Qt5Gui.dll
+!release/Qt5Widgets.dll
+!release/libgcc_s_seh-1.dll
+!release/libstdc++-6.dll
+!release/libwinpthread-1.dll
+!release/platforms/
+!release/saves/
+!release/*.qm

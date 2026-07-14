@@ -7,4 +7,6 @@ cd /d "%APP_DIR%"
 if not exist "%APP_DIR%release\CampusRPG_GUI.exe" (
   call BuildGame.cmd
 )
-start "" "%APP_DIR%release\CampusRPG_GUI.exe"
+set "APP=%APP_DIR%release\CampusRPG_GUI.exe"
+if exist "%APP_DIR%release\CampusRPG_GUI_Updated.exe" set "APP=%APP_DIR%release\CampusRPG_GUI_Updated.exe"
+start "" "%APP%"

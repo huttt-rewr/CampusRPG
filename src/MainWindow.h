@@ -7,14 +7,15 @@
 
 #include <QMainWindow>
 #include <QMap>
+#include <QSet>
 #include <QString>
 #include <QStringList>
 #include <QVector>
 #include <memory>
 #include <vector>
 
-class QComboBox;
 class QGridLayout;
+class QComboBox;
 class QLabel;
 class QListWidget;
 class QPushButton;
@@ -59,6 +60,10 @@ private slots:
     void exploreRoom();
     void fightOneRound();
     void useBattleMedicine();
+    void moveToMapRoom();
+    void enterNextDungeonLayer();
+    void moveTaskUp();
+    void moveTaskDown();
 
 private:
     enum class ItemType { Medicine, Food, Growth, Consumable, Equipment };
@@ -143,6 +148,10 @@ private:
         RoomType type = RoomType::Battle;
         bool cleared = false;
         QVector<EnemyData> enemies;
+        bool visited = false;
+        QVector<int> connections;
+        int gridRow = 0;
+        int gridColumn = 0;
     };
 
     struct ScheduleHalfDay {
@@ -156,6 +165,7 @@ private:
     void setupGamePage();
     void updateUiScale();
     void rebuildScheduleTable();
+    void loadScheduleForCurrentRole();
     void connectActions();
     void showSavePage();
     void showGamePage();
@@ -179,6 +189,12 @@ private:
     void addTaskProgress(const QString& type, const QString& target, int amount);
     void checkTaskCompletion();
     void buildDungeonLayer(int layer);
+    void rebuildDungeonMap();
+    void registerCodexEnemies();
+    void updatePhaseUi();
+    void advanceBattleActor();
+    int currentBattleRole() const;
+    void resolveEnemyTurnIfRoundComplete();
     QVector<EnemyData> makeEnemyGroup(int layer, bool elite, bool boss) const;
     QVector<ItemData> makeLayerEquipments(int layer) const;
     void startBattle(const QVector<EnemyData>& enemies, bool elite, bool boss);
@@ -201,6 +217,7 @@ private:
     int selectedRoleOrFirstAlive() const;
     void applyItemEffect(CharacterData& role, const ItemData& item);
     void applyEquipmentStats(CharacterData& role, const ItemData& item, int sign);
+    void updateVisualPreviews();
     QString saveFilePath(int slot) const;
     QString currentSaveFilePath() const;
     void loadSlotMeta();
@@ -225,19 +242,31 @@ private:
     QGridLayout* slotGrid = nullptr;
     QLabel* saveTitleLabel = nullptr;
     QLabel* saveHintLabel = nullptr;
+    QLabel* saveSceneLabel = nullptr;
     QTabWidget* tabs = nullptr;
     QLabel* overviewLabel = nullptr;
+    QLabel* overviewSceneLabel = nullptr;
+    QPushButton* taskHeaderButton = nullptr;
     QTextEdit* logText = nullptr;
     QTableWidget* scheduleTable = nullptr;
     QLabel* schedulePreviewLabel = nullptr;
+    QLabel* scheduleRoleLabel = nullptr;
     QListWidget* characterList = nullptr;
+    QLabel* characterPreviewLabel = nullptr;
     QListWidget* inventoryList = nullptr;
+    QListWidget* characterInventoryList = nullptr;
     QListWidget* taskList = nullptr;
     QListWidget* angelShopList = nullptr;
     QListWidget* demonShopList = nullptr;
     QListWidget* dungeonRoomList = nullptr;
+    QGridLayout* dungeonMapGrid = nullptr;
+    QListWidget* battleTargetList = nullptr;
+    QComboBox* battleActionCombo = nullptr;
+    QLabel* battleTurnLabel = nullptr;
     QListWidget* codexList = nullptr;
     QLabel* dungeonLabel = nullptr;
+    QLabel* dungeonSceneLabel = nullptr;
+    QLabel* dungeonPreviewLabel = nullptr;
     QPushButton* fightRoundBtn = nullptr;
     QPushButton* battleMedicineBtn = nullptr;
 
@@ -256,12 +285,17 @@ private:
     int formationType = 1;
     int dungeonLayer = 0;
     int currentRoom = 0;
+    int schedulingRoleIndex = 0;
+    int battleRound = 1;
+    int battleActorIndex = 0;
+    int selectedInventoryRow = -1;
     int selectedSlot = -1;
     bool inBattle = false;
     bool firstAngelShopBought = false;
     bool firstDemonShopBought = false;
     bool equippedOnce = false;
     bool formationChanged = false;
+    bool nextLayerReady = false;
     GamePhase phase = GamePhase::SaveSelect;
 
     QVector<CharacterData> party;
@@ -273,6 +307,10 @@ private:
     QVector<EnemyData> battleEnemies;
     QMap<QString, EnemyData> codex;
     QMap<QString, bool> encountered;
+    QMap<QString, QVector<QString>> savedSchedules;
+    QMap<QString, bool> keepSchedulePreset;
+    QSet<int> actedPlayers;
+    QVector<int> battleOrder;
     std::vector<std::unique_ptr<Profession>> professions;
     QMap<QString, QString> saveNames;
 };
