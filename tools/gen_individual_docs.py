@@ -1,12 +1,13 @@
 import os
 from docx import Document
-from docx.shared import Pt, Cm, RGBColor
+from docx.shared import Pt, Cm, RGBColor, Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml.ns import qn
 
 FONT = "Microsoft YaHei"
 BASE = "h:/CampusRPG_作业版/"
+ASSETS = BASE + "assets/"
 
 def F(run, size=12, bold=False, color=None):
     run.font.name = FONT
@@ -27,6 +28,41 @@ def P(doc, text, size=12, bold=False, indent=0, color=None):
     if text:
         run = p.add_run(text)
         F(run, size=size, bold=bold, color=color)
+
+def IMG(doc, path, width=4.5, caption=""):
+    """Insert image with optional caption, centered."""
+    if not os.path.exists(path):
+        return
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    try:
+        run = p.add_run()
+        run.add_picture(path, width=Inches(width))
+    except:
+        return
+    if caption:
+        cap = doc.add_paragraph()
+        cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        r = cap.add_run(caption)
+        F(r, size=9, color=(100,100,100))
+
+def IMGS(doc, paths, width=1.8, per_row=3):
+    """Insert multiple images in a grid."""
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    count = 0
+    for path in paths:
+        if os.path.exists(path):
+            try:
+                run = p.add_run()
+                run.add_picture(path, width=Inches(width))
+                run = p.add_run("  ")
+                count += 1
+                if count % per_row == 0:
+                    p = doc.add_paragraph()
+                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            except:
+                pass
 
 def add_table(doc, headers, rows):
     tbl = doc.add_table(rows=1+len(rows), cols=len(headers))
@@ -103,6 +139,21 @@ members = [
             ("Git合并时遇到冲突怎么处理？",
              "首先用git status查看冲突文件列表，然后逐个打开冲突文件，根据冲突标记<<< === >>>判断谁改了什么。对于MainWindow.cpp这种多人协作的大文件，我会和组员确认各自的修改范围，合并后编译验证确保没有遗漏。最后强制推送时先备份远程最新版本，避免覆盖别人的工作。"),
         ],
+        "images_title": "战斗系统与地窟模型展示",
+        "images_desc": "以下为负责模块相关的游戏素材：最终BOSS、精英敌人、地窟场景",
+        "images": [
+            "sprites/boss_principal.png",
+            "sprites/elite_book_guardian.png",
+            "sprites/elite_clock_prisoner.png",
+            "sprites/elite_mutant.png",
+            "sprites/elite_rust_regret.png",
+            "sprites/elite_winged_runner.png",
+            "sprites/elite_faceless_dancer.png",
+            "scenes/dungeon_07_boss.png",
+            "scenes/gym.jpg",
+        ],
+        "img_width": 1.6,
+        "img_per_row": 3,
     },
     {
         "name": "黄金弘",
@@ -143,6 +194,19 @@ members = [
             ("恶魔商店的装备半价回收逻辑是如何实现的？",
              "sellEquipmentToDemon()中，首先列出背包中的所有装备类物品，玩家选择要出售的装备编号，系统将该装备的demonPrice除以2作为回收价格，增加玩家恶魔币，然后从背包中移除该物品。折扣系统(demonDiscount)不影响回收价，回收价始终是原价的一半。"),
         ],
+        "images_title": "商店系统场景展示",
+        "images_desc": "以下为负责模块相关的游戏场景：天使商店、恶魔商店所在的地窟环境",
+        "images": [
+            "scenes/dungeon_01_gym.jpg",
+            "scenes/dungeon_02_library.jpg",
+            "scenes/dungeon_03_theater.jpg",
+            "scenes/dungeon_04_lab.jpg",
+            "scenes/dungeon_05_divination.jpg",
+            "scenes/dungeon_06_office.jpg",
+            "scenes/demon_shop.jpg",
+        ],
+        "img_width": 1.6,
+        "img_per_row": 3,
     },
     {
         "name": "张轩",
@@ -183,6 +247,18 @@ members = [
             ("装备卸下后属性会不会计算错误？",
              "不会。装备穿戴和卸下都通过equipSelectedItem()统一处理。穿戴时记录装备名到role.equipment[slotName]，计算属性时遍历所有槽位累加百分比加成。卸下时从equipment中移除对应槽位，属性加成自动消失。角色每次刷新都重新计算总属性，不会出现累积错误。"),
         ],
+        "images_title": "六职业角色模型展示",
+        "images_desc": "以下为负责模块相关的6个职业角色设计模型（AI生成概念图）",
+        "images": [
+            "sprites/学生.jpg",
+            "sprites/冰法师.jpg",
+            "sprites/圣骑士.jpg",
+            "sprites/祈福者.jpg",
+            "sprites/血战士.jpg",
+            "sprites/魔术师.jpg",
+        ],
+        "img_width": 1.8,
+        "img_per_row": 3,
     },
     {
         "name": "张申桥",
@@ -227,6 +303,19 @@ members = [
             ("如果窗口缩小到很小字体看不清怎么办？",
              "updateUiScale()中设置了最小缩放比例0.6，保证字体不会小于基准的60%。同时QTabWidget和QScrollArea会自动出现滚动条，用户可以用滚轮查看被遮挡的内容。实际使用中1280x820的基准尺寸已经覆盖了大多数笔记本和台式机屏幕。"),
         ],
+        "images_title": "场景建模与UI界面展示",
+        "images_desc": "以下为负责模块相关的7个校园场景设计模型（AI生成概念图）",
+        "images": [
+            "scenes/体育器材室.jpg",
+            "scenes/室内体育馆.jpg",
+            "scenes/废弃教室.jpg",
+            "scenes/教学楼教室黄昏.jpg",
+            "scenes/校园图书馆.jpg",
+            "scenes/校园操场黄昏.jpg",
+            "scenes/校园教学楼走廊.jpg",
+        ],
+        "img_width": 1.6,
+        "img_per_row": 3,
     },
 ]
 
@@ -253,6 +342,15 @@ for m in members:
     H(doc, f"二、工作内容详述", level=1)
     add_table(doc, ["工作内容", "具体产出与关键技术"], m["work_table"])
     P(doc, "")
+
+    # 2.5 Image Gallery
+    if "images_title" in m and "images" in m:
+        H(doc, m.get("images_title", "相关模型展示"), level=2)
+        P(doc, m.get("images_desc", ""), size=10, color=(100,100,100))
+        P(doc, "")
+        img_paths = [ASSETS + p for p in m["images"]]
+        IMGS(doc, img_paths, width=m.get("img_width", 1.8), per_row=m.get("img_per_row", 3))
+        P(doc, "")
 
     # 3. Speech Script
     H(doc, f"三、答辩发言稿", level=1)
